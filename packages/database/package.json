@@ -10,8 +10,8 @@
     }
   },
   "scripts": {
-    "build": "tsc",
-    "typecheck": "tsc --noEmit",
+    "build": "tsc --project tsconfig.build.json",
+    "typecheck": "tsc --noEmit --project tsconfig.json",
     "lint": "eslint .",
     "db:generate": "drizzle-kit generate --config=drizzle.config.ts",
     "db:migrate": "drizzle-kit migrate --config=drizzle.config.ts",
