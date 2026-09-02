@@ -6,3 +6,9 @@ export {
   type LocalFilesystemMediaAdapterConfig,
   StoragePathTraversalError,
 } from "./media/index.js";
+
+export * as email from "./email/index.js";
+export {
+  ConsoleEmailAdapter,
+  type ConsoleEmailAdapterConfig,
+} from "./email/index.js";
