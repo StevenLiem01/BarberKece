@@ -13,6 +13,7 @@
     "build": "tsc --project tsconfig.build.json",
     "typecheck": "tsc --noEmit --project tsconfig.json",
     "lint": "eslint .",
+    "test": "vitest run",
     "db:generate": "drizzle-kit generate --config=drizzle.config.ts",
     "db:migrate": "drizzle-kit migrate --config=drizzle.config.ts",
     "db:seed": "tsc --project tsconfig.build.json && node dist/seed.js",
@@ -21,9 +22,11 @@
   "devDependencies": {
     "@types/node": "^20",
     "drizzle-kit": "^0.31.10",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.11"
   },
   "dependencies": {
+    "@barberkece/core": "workspace:*",
     "drizzle-orm": "^0.45.2",
     "postgres": "^3.4.9",
     "uuidv7": "^1.2.1"
