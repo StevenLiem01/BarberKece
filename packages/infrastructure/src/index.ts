@@ -1,5 +1,10 @@
 export const INFRASTRUCTURE_PACKAGE_NAME = "@barberkece/infrastructure";
 
+export * from "./logging/index.js";
+export * from "./email/index.js";
+export * from "./media/index.js";
+export * from "./identity/index.js";
+
 export * as media from "./media/index.js";
 export {
   LocalFilesystemMediaAdapter,
