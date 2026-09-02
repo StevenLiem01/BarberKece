@@ -9,6 +9,8 @@ node_modules/
 # Next.js
 .next/
 out/
+apps/*/CLAUDE.md
+apps/*/AGENTS.md
 
 # Build / test output
 dist/
