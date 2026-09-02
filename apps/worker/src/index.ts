@@ -1,11 +1,13 @@
+import { createLogger } from "@barberkece/infrastructure";
 import { WorkerRuntime } from "./worker.js";
 
-const worker = new WorkerRuntime();
+const logger = createLogger({ module: "worker" });
+const worker = new WorkerRuntime({ logger });
 
 worker.setupSignalHandlers();
 
 worker.start().catch((error) => {
-  console.error("[BarberKece Worker] Fatal startup error:", error);
+  logger.fatal({ err: error }, "[BarberKece Worker] Fatal startup error");
   process.exit(1);
 });
 

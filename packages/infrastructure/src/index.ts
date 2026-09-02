@@ -12,3 +12,18 @@ export {
   ConsoleEmailAdapter,
   type ConsoleEmailAdapterConfig,
 } from "./email/index.js";
+
+export * as logging from "./logging/index.js";
+export {
+  type Logger,
+  type LoggerOptions,
+  type LogContext,
+  createLogger,
+  createChildLogger,
+  createRequestLogger,
+  logger,
+  generateRequestId,
+  sanitizeRequestId,
+  DEFAULT_REDACT_PATHS,
+  REDACTED_VALUE,
+} from "./logging/index.js";

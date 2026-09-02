@@ -1,6 +1,10 @@
+import { createLogger, type Logger } from "@barberkece/infrastructure";
+
 export type WorkerState = "idle" | "running" | "stopping" | "stopped";
 
 export type CleanupHandler = () => Promise<void> | void;
+
+export type CustomLogFn = (message: string) => void;
 
 export interface WorkerOptions {
   /**
@@ -8,9 +12,9 @@ export interface WorkerOptions {
    */
   tickIntervalMs?: number;
   /**
-   * Custom logger function (defaults to console.log).
+   * Custom logger instance or simple log function.
    */
-  logger?: (message: string) => void;
+  logger?: Logger | CustomLogFn;
   /**
    * Timeout in ms for graceful shutdown cleanup (default: 10000ms).
    */
@@ -25,7 +29,7 @@ export class WorkerRuntime {
   private state: WorkerState = "idle";
   private readonly tickIntervalMs: number;
   private readonly shutdownTimeoutMs: number;
-  private readonly logger: (message: string) => void;
+  private readonly loggerInstance: Logger | CustomLogFn;
   private readonly cleanupHandlers: CleanupHandler[] = [];
   private tickTimer: NodeJS.Timeout | null = null;
   private abortController: AbortController | null = null;
@@ -33,7 +37,31 @@ export class WorkerRuntime {
   constructor(options?: WorkerOptions) {
     this.tickIntervalMs = options?.tickIntervalMs ?? 5000;
     this.shutdownTimeoutMs = options?.shutdownTimeoutMs ?? 10000;
-    this.logger = options?.logger ?? ((msg: string) => console.log(msg));
+    this.loggerInstance = options?.logger ?? createLogger({ module: "worker" });
+  }
+
+  private logInfo(message: string, context?: Record<string, unknown>): void {
+    if (typeof this.loggerInstance === "function") {
+      this.loggerInstance(message);
+    } else {
+      if (context) {
+        this.loggerInstance.info(context, message);
+      } else {
+        this.loggerInstance.info(message);
+      }
+    }
+  }
+
+  private logError(
+    message: string,
+    error?: Error,
+    context?: Record<string, unknown>,
+  ): void {
+    if (typeof this.loggerInstance === "function") {
+      this.loggerInstance(`${message}${error ? `: ${error.message}` : ""}`);
+    } else {
+      this.loggerInstance.error({ err: error, ...context }, message);
+    }
   }
 
   /**
@@ -62,7 +90,7 @@ export class WorkerRuntime {
    */
   async start(): Promise<void> {
     if (this.state === "running") {
-      this.logger("[Worker] Worker is already running.");
+      this.logInfo("[Worker] Worker is already running.");
       return;
     }
     if (this.state === "stopping") {
@@ -71,10 +99,10 @@ export class WorkerRuntime {
 
     this.state = "running";
     this.abortController = new AbortController();
-    this.logger("[Worker] Starting BarberKece Worker process...");
+    this.logInfo("[Worker] Starting BarberKece Worker process...");
 
     this.scheduleNextTick();
-    this.logger("[Worker] Worker successfully started.");
+    this.logInfo("[Worker] Worker successfully started.");
   }
 
   private scheduleNextTick(): void {
@@ -85,9 +113,7 @@ export class WorkerRuntime {
       try {
         await this.onTick();
       } catch (error) {
-        this.logger(
-          `[Worker] Error during worker tick: ${(error as Error).message}`,
-        );
+        this.logError("[Worker] Error during worker tick", error as Error);
       } finally {
         this.scheduleNextTick();
       }
@@ -115,7 +141,9 @@ export class WorkerRuntime {
     }
 
     this.state = "stopping";
-    this.logger(`[Worker] Initiating graceful shutdown (reason: ${reason})...`);
+    this.logInfo(
+      `[Worker] Initiating graceful shutdown (reason: ${reason})...`,
+    );
 
     // Cancel pending ticks and signal abort
     if (this.tickTimer) {
@@ -133,8 +161,9 @@ export class WorkerRuntime {
         try {
           await handler();
         } catch (error) {
-          this.logger(
-            `[Worker] Error during cleanup handler: ${(error as Error).message}`,
+          this.logError(
+            "[Worker] Error during cleanup handler",
+            error as Error,
           );
         }
       }
@@ -142,7 +171,7 @@ export class WorkerRuntime {
 
     const timeoutPromise = new Promise<void>((resolve) => {
       const timer = setTimeout(() => {
-        this.logger(
+        this.logInfo(
           `[Worker] Cleanup exceeded ${this.shutdownTimeoutMs}ms timeout; proceeding with shutdown.`,
         );
         resolve();
@@ -153,7 +182,7 @@ export class WorkerRuntime {
     await Promise.race([cleanupPromise, timeoutPromise]);
 
     this.state = "stopped";
-    this.logger("[Worker] Worker shutdown complete.");
+    this.logInfo("[Worker] Worker shutdown complete.");
   }
 
   /**
@@ -162,7 +191,7 @@ export class WorkerRuntime {
    */
   setupSignalHandlers(): () => void {
     const onSignal = async (signal: string) => {
-      this.logger(`[Worker] Received ${signal} signal.`);
+      this.logInfo(`[Worker] Received ${signal} signal.`);
       await this.stop(signal);
       process.exit(0);
     };

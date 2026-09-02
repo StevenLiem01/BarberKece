@@ -11,6 +11,9 @@
     "lint": "eslint .",
     "test": "vitest run"
   },
+  "dependencies": {
+    "@barberkece/infrastructure": "workspace:*"
+  },
   "devDependencies": {
     "@types/node": "^20",
     "tsx": "^4.19.3",

@@ -15,6 +15,10 @@
     "./email": {
       "types": "./dist/email/index.d.ts",
       "default": "./dist/email/index.js"
+    },
+    "./logging": {
+      "types": "./dist/logging/index.d.ts",
+      "default": "./dist/logging/index.js"
     }
   },
   "scripts": {
@@ -24,7 +28,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@barberkece/core": "workspace:*"
+    "@barberkece/core": "workspace:*",
+    "pino": "^10.3.1"
   },
   "devDependencies": {
     "@types/node": "^20",
