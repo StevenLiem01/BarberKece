@@ -106,6 +106,10 @@ importers:
         version: 5.9.3
 
   packages/core:
+    dependencies:
+      uuidv7:
+        specifier: ^1.2.1
+        version: 1.2.1
     devDependencies:
       '@types/node':
         specifier: ^20
@@ -113,6 +117,9 @@ importers:
       typescript:
         specifier: ^5
         version: 5.9.3
+      vitest:
+        specifier: ^4.1.11
+        version: 4.1.11(@types/node@20.19.43)(vite@8.2.2(@types/node@20.19.43)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12))
 
   packages/database:
     dependencies:
