@@ -3517,6 +3517,7 @@ barberkece/
 │   ├── database/
 │   ├── contracts/
 │   ├── config/
+│   ├── infrastructure/
 │   └── testing/
 ├── tooling/
 ├── docs/
@@ -3533,10 +3534,11 @@ Rules:
 1. `docker/`, `docker-compose.yml`, and equivalent container files are not required baseline repository artifacts.
 2. Repository setup documentation must prioritize the native non-Docker workflow.
 3. Scripts must not require Docker to start PostgreSQL, the web app, or the worker.
-4. Local filesystem storage implementation belongs in Infrastructure, behind the same storage port used by production adapters.
-5. Development email implementation belongs behind the email port.
-6. `packages/core` remains unaware of native PostgreSQL installation details, filesystem paths, hosting provider, or Docker.
-7. If optional container support is added later, it must remain an optional developer convenience and not become a repository prerequisite.
+4. `packages/infrastructure` is the shared package for concrete platform and provider adapters (such as `LocalFilesystemMediaAdapter` and future development email/console adapters), implementing port contracts defined in `packages/core`.
+5. Dependency direction: `packages/infrastructure` → `packages/core`. `packages/core` contains pure domain models, application use cases, ports, and domain errors, and must never import or depend on `packages/infrastructure`, Node filesystem APIs, or provider SDKs.
+6. Applications (`apps/web`, `apps/worker`) compose and inject concrete adapters from `packages/infrastructure` and repositories from `packages/database` into application use cases.
+7. `packages/core` remains unaware of native PostgreSQL installation details, filesystem paths, hosting provider, or Docker.
+8. If optional container support is added later, it must remain an optional developer convenience and not become a repository prerequisite.
 
 All other STEP 22 dependency directions, module boundaries, naming rules, testing structure, server/client boundaries, and architecture rules remain unchanged.
 
@@ -3557,25 +3559,26 @@ PHASE 0 / M0 must use the lightweight non-Docker bootstrap.
 08. Create packages/database
 09. Create packages/contracts
 10. Create packages/config
-11. Create packages/testing
-12. Configure TypeScript
-13. Configure Next.js
-14. Configure Tailwind CSS
-15. Configure ESLint + Prettier
-16. Configure environment validation
-17. Install PostgreSQL natively
-18. Create local BarberKece PostgreSQL database
-19. Configure Drizzle
-20. Create migration infrastructure
-21. Create local filesystem media adapter foundation
-22. Create development email / console adapter foundation
-23. Bootstrap worker process
-24. Add logging + request ID foundation
-25. Configure Vitest
-26. Configure Playwright baseline
-27. Configure GitHub Actions CI
-28. Create .env.example
-29. Create developer README/setup instructions
+11. Create packages/infrastructure
+12. Create packages/testing
+13. Configure TypeScript
+14. Configure Next.js
+15. Configure Tailwind CSS
+16. Configure ESLint + Prettier
+17. Configure environment validation
+18. Install PostgreSQL natively
+19. Create local BarberKece PostgreSQL database
+20. Configure Drizzle
+21. Create migration infrastructure
+22. Create local filesystem media adapter foundation
+23. Create development email / console adapter foundation
+24. Bootstrap worker process
+25. Add logging + request ID foundation
+26. Configure Vitest
+27. Configure Playwright baseline
+28. Configure GitHub Actions CI
+29. Create .env.example
+30. Create developer README/setup instructions
 ```
 
 Explicitly removed from the default Phase 0:
