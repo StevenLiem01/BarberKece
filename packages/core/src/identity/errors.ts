@@ -13,3 +13,10 @@ export class PasswordHashingError extends IdentityError {
     this.name = "PasswordHashingError";
   }
 }
+
+export class TokenError extends IdentityError {
+  constructor(message: string = "An error occurred during token processing") {
+    super(message);
+    this.name = "TokenError";
+  }
+}
