@@ -15,6 +15,7 @@
     "lint": "eslint .",
     "db:generate": "drizzle-kit generate --config=drizzle.config.ts",
     "db:migrate": "drizzle-kit migrate --config=drizzle.config.ts",
+    "db:seed": "tsc --project tsconfig.build.json && node dist/seed.js",
     "db:studio": "drizzle-kit studio --config=drizzle.config.ts"
   },
   "devDependencies": {
