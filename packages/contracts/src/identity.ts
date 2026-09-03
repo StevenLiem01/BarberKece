@@ -6,3 +6,10 @@ export const RegisterCustomerSchema = z.object({
 });
 
 export type RegisterCustomerRequest = z.infer<typeof RegisterCustomerSchema>;
+
+export const LoginSchema = z.object({
+  email: z.string().email("Invalid email format"),
+  password: z.string().min(1, "Password is required"),
+});
+
+export type LoginRequest = z.infer<typeof LoginSchema>;

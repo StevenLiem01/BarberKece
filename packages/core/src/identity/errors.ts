@@ -20,3 +20,10 @@ export class TokenError extends IdentityError {
     this.name = "TokenError";
   }
 }
+
+export class AuthenticationError extends IdentityError {
+  constructor(message: string = "Authentication failed") {
+    super(message);
+    this.name = "AuthenticationError";
+  }
+}
