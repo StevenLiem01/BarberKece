@@ -7,4 +7,5 @@ export * from "./ports/user-repository.js";
 export * from "./use-cases/register-customer.js";
 export * from "./use-cases/authenticate-user.js";
 export * from "./use-cases/resolve-authenticated-user.js";
+export * from "./use-cases/revoke-session.js";
 export * from "./errors.js";
