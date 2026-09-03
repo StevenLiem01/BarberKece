@@ -49,19 +49,25 @@ describe("POST /api/v1/auth/logout", () => {
     origin?: string;
     referer?: string;
     host?: string;
+    omitOrigin?: boolean;
   }) => {
     const headers = new Headers();
     if (options?.cookie) {
       headers.set("cookie", options.cookie);
     }
+    const host = options?.host ?? "localhost:3000";
+    if (host) {
+      headers.set("host", host);
+    }
+
     if (options?.origin) {
       headers.set("origin", options.origin);
+    } else if (!options?.omitOrigin && !options?.referer) {
+      headers.set("origin", "http://localhost:3000");
     }
+
     if (options?.referer) {
       headers.set("referer", options.referer);
-    }
-    if (options?.host) {
-      headers.set("host", options.host);
     }
 
     return new NextRequest("http://localhost:3000/api/v1/auth/logout", {
@@ -206,5 +212,88 @@ describe("POST /api/v1/auth/logout", () => {
 
     expect(res.status).toBe(200);
     expect(mockExecute).toHaveBeenCalledWith("valid-token");
+  });
+
+  it("rejects malformed Origin header", async () => {
+    const req = createRequest({
+      cookie: "barberkece_session=valid-token",
+      origin: "not-a-valid-url",
+      host: "localhost:3000",
+    });
+
+    const res = await POST(req);
+
+    expect(res.status).toBe(403);
+    const body = await res.json();
+    expect(body.error.code).toBe("FORBIDDEN");
+    expect(body.error.message).toBe("Invalid origin header");
+    expect(body.error.requestId).toBe("test-req-id");
+    expect(mockExecute).not.toHaveBeenCalled();
+  });
+
+  it("rejects malformed Referer header when Origin is absent", async () => {
+    const req = createRequest({
+      cookie: "barberkece_session=valid-token",
+      referer: "not-a-valid-url",
+      host: "localhost:3000",
+    });
+
+    const res = await POST(req);
+
+    expect(res.status).toBe(403);
+    const body = await res.json();
+    expect(body.error.code).toBe("FORBIDDEN");
+    expect(body.error.message).toBe("Invalid referer header");
+    expect(body.error.requestId).toBe("test-req-id");
+    expect(mockExecute).not.toHaveBeenCalled();
+  });
+
+  it("allows same-origin requests with matching Referer header when Origin is absent", async () => {
+    mockExecute.mockResolvedValue(undefined);
+
+    const req = createRequest({
+      cookie: "barberkece_session=valid-token",
+      referer: "http://localhost:3000/account",
+      host: "localhost:3000",
+    });
+
+    const res = await POST(req);
+
+    expect(res.status).toBe(200);
+    expect(mockExecute).toHaveBeenCalledWith("valid-token");
+  });
+
+  it("gives Origin precedence over Referer", async () => {
+    mockExecute.mockResolvedValue(undefined);
+
+    const req = createRequest({
+      cookie: "barberkece_session=valid-token",
+      origin: "http://localhost:3000",
+      referer: "https://evil.com/attacker",
+      host: "localhost:3000",
+    });
+
+    const res = await POST(req);
+
+    expect(res.status).toBe(200);
+    expect(mockExecute).toHaveBeenCalledWith("valid-token");
+  });
+
+  it("rejects request when both Origin and Referer headers are absent", async () => {
+    const req = createRequest({
+      cookie: "barberkece_session=valid-token",
+      omitOrigin: true,
+      host: "localhost:3000",
+    });
+
+    const res = await POST(req);
+
+    expect(res.status).toBe(403);
+    const body = await res.json();
+    expect(body.error.code).toBe("FORBIDDEN");
+    expect(body.error.message).toBe("Cross-origin request forbidden");
+    expect(body.error.requestId).toBe("test-req-id");
+    expect(mockExecute).not.toHaveBeenCalled();
+    expect(res.headers.get("Set-Cookie")).toBeNull();
   });
 });

@@ -5,6 +5,7 @@ import { NodeCryptoTokenAdapter } from "@barberkece/infrastructure/identity";
 import { generateRequestId, logger } from "@barberkece/infrastructure/logging";
 import { getDatabaseClient } from "@/lib/db";
 import { parseEnv } from "@barberkece/config";
+import { validateSameOrigin } from "@/lib/same-origin";
 
 export const runtime = "nodejs";
 
@@ -27,72 +28,33 @@ export async function POST(req: NextRequest) {
   const requestId = generateRequestId();
 
   // Origin / Referer CSRF defense for cookie-authenticated mutation
-  const origin = req.headers.get("origin");
-  const referer = req.headers.get("referer");
-  const host = req.headers.get("host") ?? req.nextUrl.host;
-
-  if (origin && host) {
-    try {
-      const originHost = new URL(origin).host;
-      if (originHost !== host) {
-        logger.warn(
-          { requestId, origin, host },
-          "Forbidden cross-origin logout request",
-        );
-        return NextResponse.json(
-          {
-            error: {
-              code: "FORBIDDEN",
-              message: "Cross-origin request forbidden",
-              requestId,
-            },
-          },
-          { status: 403 },
-        );
-      }
-    } catch {
-      return NextResponse.json(
+  const sameOriginResult = validateSameOrigin(req);
+  if (!sameOriginResult.isValid) {
+    if (
+      sameOriginResult.reason === "mismatched_origin" ||
+      sameOriginResult.reason === "mismatched_referer" ||
+      sameOriginResult.reason === "missing_origin"
+    ) {
+      logger.warn(
         {
-          error: {
-            code: "FORBIDDEN",
-            message: "Invalid origin header",
-            requestId,
-          },
+          requestId,
+          origin: req.headers.get("origin"),
+          referer: req.headers.get("referer"),
+          host: req.headers.get("host") ?? req.nextUrl.host,
         },
-        { status: 403 },
+        "Forbidden cross-origin logout request",
       );
     }
-  } else if (referer && host) {
-    try {
-      const refererHost = new URL(referer).host;
-      if (refererHost !== host) {
-        logger.warn(
-          { requestId, referer, host },
-          "Forbidden cross-origin logout request",
-        );
-        return NextResponse.json(
-          {
-            error: {
-              code: "FORBIDDEN",
-              message: "Cross-origin request forbidden",
-              requestId,
-            },
-          },
-          { status: 403 },
-        );
-      }
-    } catch {
-      return NextResponse.json(
-        {
-          error: {
-            code: "FORBIDDEN",
-            message: "Invalid referer header",
-            requestId,
-          },
+    return NextResponse.json(
+      {
+        error: {
+          code: "FORBIDDEN",
+          message: sameOriginResult.message,
+          requestId,
         },
-        { status: 403 },
-      );
-    }
+      },
+      { status: 403 },
+    );
   }
 
   const sessionCookie = req.cookies.get("barberkece_session");

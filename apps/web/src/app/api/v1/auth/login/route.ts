@@ -16,6 +16,7 @@ import {
 import { generateRequestId, logger } from "@barberkece/infrastructure/logging";
 import { getDatabaseClient } from "@/lib/db";
 import { parseEnv } from "@barberkece/config";
+import { validateSameOrigin } from "@/lib/same-origin";
 
 export const runtime = "nodejs";
 
@@ -40,6 +41,36 @@ function getAuthenticateUserUseCase(): AuthenticateUserUseCase {
 
 export async function POST(req: NextRequest) {
   const requestId = generateRequestId();
+
+  // Origin / Referer CSRF defense for state-changing authentication mutation
+  const sameOriginResult = validateSameOrigin(req);
+  if (!sameOriginResult.isValid) {
+    if (
+      sameOriginResult.reason === "mismatched_origin" ||
+      sameOriginResult.reason === "mismatched_referer" ||
+      sameOriginResult.reason === "missing_origin"
+    ) {
+      logger.warn(
+        {
+          requestId,
+          origin: req.headers.get("origin"),
+          referer: req.headers.get("referer"),
+          host: req.headers.get("host") ?? req.nextUrl.host,
+        },
+        "Forbidden cross-origin login request",
+      );
+    }
+    return NextResponse.json(
+      {
+        error: {
+          code: "FORBIDDEN",
+          message: sameOriginResult.message,
+          requestId,
+        },
+      },
+      { status: 403 },
+    );
+  }
 
   try {
     let body;
