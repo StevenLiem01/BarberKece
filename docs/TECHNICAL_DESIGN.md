@@ -906,28 +906,37 @@ Release 1 menggunakan:
 Default browser authentication:
 
 ```text
-Secure Session Cookie
+Secure Session Cookie (`barberkece_session`)
 → BarberKece Server
-→ Session Persistence
+→ Session Persistence (Token Hash)
 → User
 ```
 
-Long-lived auth tokens tidak disimpan di `localStorage`.
+Rules:
+- Stateful server-managed sessions.
+- Cryptographically secure opaque random session token generated on server via `TokenPort`.
+- Raw session token exists only at the client/HTTP boundary (via cookie).
+- Database stores only SHA-256 token hash (`token_hash`); raw token is never persisted or logged.
+- Server-side expiry remains authoritative.
+- Logout/revocation deletes or otherwise invalidates the server-side session in PostgreSQL.
+- No JWT.
+- Long-lived auth tokens tidak disimpan di `localStorage` atau `sessionStorage`.
+- `SESSION_SECRET` / `AUTH_SECRET` is not required for this opaque server-managed session design because the token carries no client-side signed claims; validity is determined by the hashed token stored in PostgreSQL.
 
 ---
 
-# 22. Authentication Cookie
+# 22. Authentication Cookie Policy
 
-Default properties:
+Canonical Cookie Name:
+`barberkece_session`
 
-```text
-HttpOnly = true
-Secure = true
-SameSite = Lax
-Path = /
-```
-
-Exact framework implementation diputuskan pada Final Tech Stack.
+Cookie Properties:
+- `HttpOnly = true`
+- `SameSite = Lax`
+- `Secure = true` in production (`Secure = false` in local development)
+- `Path = /`
+- `Max-Age = 604800` (7 days in seconds)
+- `Expires`: aligned with the same 7-day session lifetime as the persisted session
 
 ---
 
@@ -1008,22 +1017,28 @@ Reset dan invitation token harus:
 
 # 26. Session Model
 
+Status: **LOCKED**
+
+Session Lifetime:
+- 7 days (604800 seconds)
+
 Conceptual:
 
 ```text
 Session
-├── id
+├── id (UUIDv7)
 ├── user_id
-├── created_at
-├── last_seen_at
-├── expires_at
-├── revoked_at
-└── user_agent_summary
+├── token_hash (SHA-256)
+├── expires_at (TIMESTAMPTZ, created_at + 7 days)
+└── created_at (TIMESTAMPTZ)
 ```
 
-Multi-device sessions diperbolehkan.
-
-Current and all-device revocation harus didukung.
+Rules:
+- Multi-device sessions diperbolehkan.
+- Database stores only SHA-256 token hash (`token_hash`), never raw tokens.
+- Server-side expiration (7 days / 604800 seconds) is authoritative.
+- Current and all-device revocation harus didukung (revocation deletes or invalidates the session record in PostgreSQL).
+- Raw session tokens must never be logged.
 
 ---
 
@@ -1938,7 +1953,6 @@ Examples:
 
 ```text
 DATABASE_URL
-SESSION_SECRET
 EMAIL_API_KEY
 STORAGE_SECRET
 FUTURE_PAYMENT_SECRET
@@ -3119,7 +3133,6 @@ Deferred:
 Deferred:
 
 - exact data retention periods
-- exact session expiry numbers
 - exact admin re-auth rules
 - exact password policy
 - account deletion/anonymization procedure
