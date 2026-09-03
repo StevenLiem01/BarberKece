@@ -7,18 +7,24 @@ import {
 import { PostgresUserRepository } from "@barberkece/database/repositories";
 import { Argon2PasswordHashingAdapter } from "@barberkece/infrastructure/identity";
 import { generateRequestId, logger } from "@barberkece/infrastructure/logging";
-import { createDatabase } from "@barberkece/database";
+import { getDatabaseClient } from "@/lib/db";
 
-const dbClient = createDatabase(
-  process.env.DATABASE_URL ||
-    "postgres://postgres:postgres@localhost:5432/barberkece_dev",
-);
-const userRepository = new PostgresUserRepository(dbClient.db);
-const passwordHashing = new Argon2PasswordHashingAdapter();
-const registerCustomerUseCase = new RegisterCustomerUseCase(
-  userRepository,
-  passwordHashing,
-);
+export const runtime = "nodejs";
+
+let registerCustomerUseCase: RegisterCustomerUseCase | undefined;
+
+function getRegisterCustomerUseCase(): RegisterCustomerUseCase {
+  if (!registerCustomerUseCase) {
+    const dbClient = getDatabaseClient();
+    const userRepository = new PostgresUserRepository(dbClient.db);
+    const passwordHashing = new Argon2PasswordHashingAdapter();
+    registerCustomerUseCase = new RegisterCustomerUseCase(
+      userRepository,
+      passwordHashing,
+    );
+  }
+  return registerCustomerUseCase;
+}
 
 export async function POST(req: NextRequest) {
   const requestId = generateRequestId();
@@ -55,7 +61,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const result = await registerCustomerUseCase.execute({
+    const useCase = getRegisterCustomerUseCase();
+    const result = await useCase.execute({
       email: parsed.data.email,
       passwordRaw: parsed.data.password,
     });

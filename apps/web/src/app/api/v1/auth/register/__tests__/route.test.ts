@@ -38,8 +38,8 @@ vi.mock("@barberkece/infrastructure/logging", () => ({
   },
 }));
 
-vi.mock("@barberkece/database", () => ({
-  createDatabase: vi.fn(() => ({ db: {} })),
+vi.mock("@/lib/db", () => ({
+  getDatabaseClient: vi.fn(() => ({ db: {} })),
 }));
 
 describe("POST /api/v1/auth/register", () => {

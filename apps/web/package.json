@@ -11,6 +11,7 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@barberkece/config": "workspace:*",
     "@barberkece/contracts": "workspace:*",
     "@barberkece/core": "workspace:*",
     "@barberkece/database": "workspace:*",
