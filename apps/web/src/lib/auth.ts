@@ -1,6 +1,8 @@
 import { cookies } from "next/headers";
+import { redirect, notFound } from "next/navigation";
 import {
   User,
+  UserRole,
   ResolveAuthenticatedUserUseCase,
 } from "@barberkece/core/identity";
 import {
@@ -62,4 +64,54 @@ export async function getAuthenticatedUser(): Promise<User | null> {
     );
     throw error;
   }
+}
+
+/**
+ * Requires the current request to be from an authenticated user.
+ * If unauthenticated (no active session, expired session, or inactive user),
+ * redirects to the specified route (default: `/login`).
+ *
+ * @param redirectTo The path to redirect to when unauthenticated.
+ * @returns The authenticated User entity.
+ */
+export async function requireAuthenticatedUser(
+  redirectTo = "/login",
+): Promise<User> {
+  const user = await getAuthenticatedUser();
+  if (!user) {
+    redirect(redirectTo);
+  }
+  return user;
+}
+
+export interface RequireRoleOptions {
+  unauthorizedAction?: "notFound" | "redirect";
+  redirectTo?: string;
+}
+
+/**
+ * Requires the current request to be from an authenticated user with an authorized role.
+ * - If unauthenticated, redirects to `/login`.
+ * - If authenticated but with an unauthorized role, triggers notFound() by default
+ *   to avoid leaking the existence or structure of sensitive internal/role routes.
+ *
+ * @param allowedRoles A single UserRole or array of allowed UserRoles.
+ * @param options Customization for handling unauthorized roles.
+ * @returns The authenticated User entity.
+ */
+export async function requireRole(
+  allowedRoles: UserRole | UserRole[],
+  options?: RequireRoleOptions,
+): Promise<User> {
+  const user = await requireAuthenticatedUser();
+
+  const roles = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
+  if (!roles.includes(user.role)) {
+    if (options?.unauthorizedAction === "redirect") {
+      redirect(options.redirectTo ?? "/");
+    }
+    notFound();
+  }
+
+  return user;
 }

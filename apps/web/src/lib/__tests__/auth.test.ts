@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { getAuthenticatedUser } from "../auth.js";
+import {
+  getAuthenticatedUser,
+  requireAuthenticatedUser,
+  requireRole,
+} from "../auth.js";
 import { cookies } from "next/headers";
 import { User } from "@barberkece/core/identity";
 import { logger } from "@barberkece/infrastructure/logging";
@@ -7,6 +11,21 @@ import { logger } from "@barberkece/infrastructure/logging";
 // Mock next/headers
 vi.mock("next/headers", () => ({
   cookies: vi.fn(),
+}));
+
+// Mock next/navigation
+const { mockRedirect, mockNotFound } = vi.hoisted(() => ({
+  mockRedirect: vi.fn((url: string) => {
+    throw new Error(`NEXT_REDIRECT: ${url}`);
+  }),
+  mockNotFound: vi.fn(() => {
+    throw new Error("NEXT_NOT_FOUND");
+  }),
+}));
+
+vi.mock("next/navigation", () => ({
+  redirect: mockRedirect,
+  notFound: mockNotFound,
 }));
 
 // Mock the logger
@@ -47,7 +66,7 @@ vi.mock("@barberkece/core/identity", async (importOriginal) => {
   };
 });
 
-describe("getAuthenticatedUser", () => {
+describe("auth helpers", () => {
   const validUser: User = {
     id: "user-123",
     email: "test@example.com",
@@ -63,98 +82,263 @@ describe("getAuthenticatedUser", () => {
     vi.clearAllMocks();
   });
 
-  it("resolves user from valid cookie without exposing raw token or hashes", async () => {
-    vi.mocked(cookies).mockResolvedValue({
-      get: vi.fn().mockReturnValue({ value: "valid-raw-token" }),
-    } as unknown as Awaited<ReturnType<typeof cookies>>);
+  describe("getAuthenticatedUser", () => {
+    it("resolves user from valid cookie without exposing raw token or hashes", async () => {
+      vi.mocked(cookies).mockResolvedValue({
+        get: vi.fn().mockReturnValue({ value: "valid-raw-token" }),
+      } as unknown as Awaited<ReturnType<typeof cookies>>);
 
-    mockExecute.mockResolvedValue(validUser);
+      mockExecute.mockResolvedValue(validUser);
 
-    const user = await getAuthenticatedUser();
+      const user = await getAuthenticatedUser();
 
-    expect(user).toEqual(validUser);
-    expect(mockExecute).toHaveBeenCalledWith("valid-raw-token");
-    expect(user).not.toHaveProperty("passwordHash");
-    expect(user).not.toHaveProperty("tokenHash");
-    expect(user).not.toHaveProperty("rawToken");
+      expect(user).toEqual(validUser);
+      expect(mockExecute).toHaveBeenCalledWith("valid-raw-token");
+      expect(user).not.toHaveProperty("passwordHash");
+      expect(user).not.toHaveProperty("tokenHash");
+      expect(user).not.toHaveProperty("rawToken");
+    });
+
+    it("returns null when cookie is missing", async () => {
+      vi.mocked(cookies).mockResolvedValue({
+        get: vi.fn().mockReturnValue(undefined),
+      } as unknown as Awaited<ReturnType<typeof cookies>>);
+
+      const user = await getAuthenticatedUser();
+
+      expect(user).toBeNull();
+      expect(mockExecute).not.toHaveBeenCalled();
+    });
+
+    it("returns null when cookie is invalid or session is missing/expired", async () => {
+      vi.mocked(cookies).mockResolvedValue({
+        get: vi.fn().mockReturnValue({ value: "expired-raw-token" }),
+      } as unknown as Awaited<ReturnType<typeof cookies>>);
+
+      mockExecute.mockResolvedValue(null);
+
+      const user = await getAuthenticatedUser();
+
+      expect(user).toBeNull();
+      expect(mockExecute).toHaveBeenCalledWith("expired-raw-token");
+    });
+
+    it("returns null when user is missing or inactive as resolved by use case", async () => {
+      vi.mocked(cookies).mockResolvedValue({
+        get: vi.fn().mockReturnValue({ value: "inactive-user-token" }),
+      } as unknown as Awaited<ReturnType<typeof cookies>>);
+
+      mockExecute.mockResolvedValue(null);
+
+      const user = await getAuthenticatedUser();
+
+      expect(user).toBeNull();
+      expect(mockExecute).toHaveBeenCalledWith("inactive-user-token");
+    });
+
+    it("logs safely and re-throws on unexpected database/infrastructure failure", async () => {
+      const rawToken = "sensitive-raw-cookie-token-12345";
+      vi.mocked(cookies).mockResolvedValue({
+        get: vi.fn().mockReturnValue({ value: rawToken }),
+      } as unknown as Awaited<ReturnType<typeof cookies>>);
+
+      const dbError = new Error("Database connection lost");
+      mockExecute.mockRejectedValue(dbError);
+
+      await expect(getAuthenticatedUser()).rejects.toThrow(
+        "Database connection lost",
+      );
+
+      expect(logger.error).toHaveBeenCalledWith(
+        { err: dbError },
+        "Unexpected error resolving authenticated user",
+      );
+      const loggedCalls = JSON.stringify(vi.mocked(logger.error).mock.calls);
+      expect(loggedCalls).not.toContain(rawToken);
+    });
+
+    it("logs safely and re-throws on TokenPort/crypto failure", async () => {
+      const rawToken = "sensitive-raw-cookie-token-67890";
+      vi.mocked(cookies).mockResolvedValue({
+        get: vi.fn().mockReturnValue({ value: rawToken }),
+      } as unknown as Awaited<ReturnType<typeof cookies>>);
+
+      const cryptoError = new Error("Token hashing failed");
+      mockExecute.mockRejectedValue(cryptoError);
+
+      await expect(getAuthenticatedUser()).rejects.toThrow(
+        "Token hashing failed",
+      );
+
+      expect(logger.error).toHaveBeenCalledWith(
+        { err: cryptoError },
+        "Unexpected error resolving authenticated user",
+      );
+      const loggedCalls = JSON.stringify(vi.mocked(logger.error).mock.calls);
+      expect(loggedCalls).not.toContain(rawToken);
+    });
   });
 
-  it("returns null when cookie is missing", async () => {
-    vi.mocked(cookies).mockResolvedValue({
-      get: vi.fn().mockReturnValue(undefined),
-    } as unknown as Awaited<ReturnType<typeof cookies>>);
+  describe("requireAuthenticatedUser", () => {
+    it("returns user if authenticated", async () => {
+      vi.mocked(cookies).mockResolvedValue({
+        get: vi.fn().mockReturnValue({ value: "valid-raw-token" }),
+      } as unknown as Awaited<ReturnType<typeof cookies>>);
 
-    const user = await getAuthenticatedUser();
+      mockExecute.mockResolvedValue(validUser);
 
-    expect(user).toBeNull();
-    expect(mockExecute).not.toHaveBeenCalled();
+      const user = await requireAuthenticatedUser();
+
+      expect(user).toEqual(validUser);
+      expect(mockRedirect).not.toHaveBeenCalled();
+    });
+
+    it("redirects unauthenticated user to /login by default", async () => {
+      vi.mocked(cookies).mockResolvedValue({
+        get: vi.fn().mockReturnValue(undefined),
+      } as unknown as Awaited<ReturnType<typeof cookies>>);
+
+      await expect(requireAuthenticatedUser()).rejects.toThrow(
+        "NEXT_REDIRECT: /login",
+      );
+      expect(mockRedirect).toHaveBeenCalledWith("/login");
+    });
+
+    it("redirects unauthenticated user to custom redirectTo", async () => {
+      vi.mocked(cookies).mockResolvedValue({
+        get: vi.fn().mockReturnValue(undefined),
+      } as unknown as Awaited<ReturnType<typeof cookies>>);
+
+      await expect(requireAuthenticatedUser("/custom-login")).rejects.toThrow(
+        "NEXT_REDIRECT: /custom-login",
+      );
+      expect(mockRedirect).toHaveBeenCalledWith("/custom-login");
+    });
+
+    it("redirects if user is inactive (returns null from auth context)", async () => {
+      vi.mocked(cookies).mockResolvedValue({
+        get: vi.fn().mockReturnValue({ value: "inactive-token" }),
+      } as unknown as Awaited<ReturnType<typeof cookies>>);
+
+      mockExecute.mockResolvedValue(null);
+
+      await expect(requireAuthenticatedUser()).rejects.toThrow(
+        "NEXT_REDIRECT: /login",
+      );
+      expect(mockRedirect).toHaveBeenCalledWith("/login");
+    });
   });
 
-  it("returns null when cookie is invalid or session is missing/expired", async () => {
-    vi.mocked(cookies).mockResolvedValue({
-      get: vi.fn().mockReturnValue({ value: "expired-raw-token" }),
-    } as unknown as Awaited<ReturnType<typeof cookies>>);
+  describe("requireRole", () => {
+    it("allows authenticated user with matching single role", async () => {
+      vi.mocked(cookies).mockResolvedValue({
+        get: vi.fn().mockReturnValue({ value: "valid-token" }),
+      } as unknown as Awaited<ReturnType<typeof cookies>>);
 
-    mockExecute.mockResolvedValue(null);
+      mockExecute.mockResolvedValue(validUser); // role: CUSTOMER
 
-    const user = await getAuthenticatedUser();
+      const user = await requireRole("CUSTOMER");
 
-    expect(user).toBeNull();
-    expect(mockExecute).toHaveBeenCalledWith("expired-raw-token");
-  });
+      expect(user).toEqual(validUser);
+      expect(mockRedirect).not.toHaveBeenCalled();
+      expect(mockNotFound).not.toHaveBeenCalled();
+    });
 
-  it("returns null when user is missing or inactive as resolved by use case", async () => {
-    vi.mocked(cookies).mockResolvedValue({
-      get: vi.fn().mockReturnValue({ value: "inactive-user-token" }),
-    } as unknown as Awaited<ReturnType<typeof cookies>>);
+    it("allows authenticated BARBER for BARBER role check", async () => {
+      const barberUser: User = { ...validUser, role: "BARBER" };
+      vi.mocked(cookies).mockResolvedValue({
+        get: vi.fn().mockReturnValue({ value: "valid-token" }),
+      } as unknown as Awaited<ReturnType<typeof cookies>>);
 
-    mockExecute.mockResolvedValue(null);
+      mockExecute.mockResolvedValue(barberUser);
 
-    const user = await getAuthenticatedUser();
+      const user = await requireRole("BARBER");
 
-    expect(user).toBeNull();
-    expect(mockExecute).toHaveBeenCalledWith("inactive-user-token");
-  });
+      expect(user).toEqual(barberUser);
+      expect(mockNotFound).not.toHaveBeenCalled();
+    });
 
-  it("logs safely and re-throws on unexpected database/infrastructure failure", async () => {
-    const rawToken = "sensitive-raw-cookie-token-12345";
-    vi.mocked(cookies).mockResolvedValue({
-      get: vi.fn().mockReturnValue({ value: rawToken }),
-    } as unknown as Awaited<ReturnType<typeof cookies>>);
+    it("allows authenticated ADMIN for ADMIN role check", async () => {
+      const adminUser: User = { ...validUser, role: "ADMIN" };
+      vi.mocked(cookies).mockResolvedValue({
+        get: vi.fn().mockReturnValue({ value: "valid-token" }),
+      } as unknown as Awaited<ReturnType<typeof cookies>>);
 
-    const dbError = new Error("Database connection lost");
-    mockExecute.mockRejectedValue(dbError);
+      mockExecute.mockResolvedValue(adminUser);
 
-    await expect(getAuthenticatedUser()).rejects.toThrow(
-      "Database connection lost",
-    );
+      const user = await requireRole("ADMIN");
 
-    expect(logger.error).toHaveBeenCalledWith(
-      { err: dbError },
-      "Unexpected error resolving authenticated user",
-    );
-    const loggedCalls = JSON.stringify(vi.mocked(logger.error).mock.calls);
-    expect(loggedCalls).not.toContain(rawToken);
-  });
+      expect(user).toEqual(adminUser);
+      expect(mockNotFound).not.toHaveBeenCalled();
+    });
 
-  it("logs safely and re-throws on TokenPort/crypto failure", async () => {
-    const rawToken = "sensitive-raw-cookie-token-67890";
-    vi.mocked(cookies).mockResolvedValue({
-      get: vi.fn().mockReturnValue({ value: rawToken }),
-    } as unknown as Awaited<ReturnType<typeof cookies>>);
+    it("allows user when role matches one of allowed roles array", async () => {
+      const adminUser: User = { ...validUser, role: "ADMIN" };
+      vi.mocked(cookies).mockResolvedValue({
+        get: vi.fn().mockReturnValue({ value: "valid-token" }),
+      } as unknown as Awaited<ReturnType<typeof cookies>>);
 
-    const cryptoError = new Error("Token hashing failed");
-    mockExecute.mockRejectedValue(cryptoError);
+      mockExecute.mockResolvedValue(adminUser);
 
-    await expect(getAuthenticatedUser()).rejects.toThrow(
-      "Token hashing failed",
-    );
+      const user = await requireRole(["BARBER", "ADMIN"]);
 
-    expect(logger.error).toHaveBeenCalledWith(
-      { err: cryptoError },
-      "Unexpected error resolving authenticated user",
-    );
-    const loggedCalls = JSON.stringify(vi.mocked(logger.error).mock.calls);
-    expect(loggedCalls).not.toContain(rawToken);
+      expect(user).toEqual(adminUser);
+    });
+
+    it("rejects unauthenticated user by redirecting to /login", async () => {
+      vi.mocked(cookies).mockResolvedValue({
+        get: vi.fn().mockReturnValue(undefined),
+      } as unknown as Awaited<ReturnType<typeof cookies>>);
+
+      await expect(requireRole("CUSTOMER")).rejects.toThrow(
+        "NEXT_REDIRECT: /login",
+      );
+      expect(mockRedirect).toHaveBeenCalledWith("/login");
+      expect(mockNotFound).not.toHaveBeenCalled();
+    });
+
+    it("rejects role mismatch with notFound() by default to prevent leaking route existence", async () => {
+      vi.mocked(cookies).mockResolvedValue({
+        get: vi.fn().mockReturnValue({ value: "valid-token" }),
+      } as unknown as Awaited<ReturnType<typeof cookies>>);
+
+      mockExecute.mockResolvedValue(validUser); // role: CUSTOMER
+
+      // CUSTOMER trying to access ADMIN route
+      await expect(requireRole("ADMIN")).rejects.toThrow("NEXT_NOT_FOUND");
+      expect(mockNotFound).toHaveBeenCalled();
+      expect(mockRedirect).not.toHaveBeenCalled();
+    });
+
+    it("supports redirect on unauthorized action when configured in options", async () => {
+      vi.mocked(cookies).mockResolvedValue({
+        get: vi.fn().mockReturnValue({ value: "valid-token" }),
+      } as unknown as Awaited<ReturnType<typeof cookies>>);
+
+      mockExecute.mockResolvedValue(validUser); // role: CUSTOMER
+
+      await expect(
+        requireRole("ADMIN", {
+          unauthorizedAction: "redirect",
+          redirectTo: "/unauthorized",
+        }),
+      ).rejects.toThrow("NEXT_REDIRECT: /unauthorized");
+      expect(mockRedirect).toHaveBeenCalledWith("/unauthorized");
+      expect(mockNotFound).not.toHaveBeenCalled();
+    });
+
+    it("rejects inactive user and redirects to /login", async () => {
+      vi.mocked(cookies).mockResolvedValue({
+        get: vi.fn().mockReturnValue({ value: "inactive-token" }),
+      } as unknown as Awaited<ReturnType<typeof cookies>>);
+
+      mockExecute.mockResolvedValue(null);
+
+      await expect(requireRole("CUSTOMER")).rejects.toThrow(
+        "NEXT_REDIRECT: /login",
+      );
+      expect(mockRedirect).toHaveBeenCalledWith("/login");
+      expect(mockNotFound).not.toHaveBeenCalled();
+    });
   });
 });
