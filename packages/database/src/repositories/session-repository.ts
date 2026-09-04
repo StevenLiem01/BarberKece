@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { Database } from "../client.js";
+import type { DbOrTx } from "../client.js";
 import { sessions } from "../schema/identity/sessions.js";
 import {
   Session,
@@ -8,7 +8,7 @@ import {
 } from "@barberkece/core/identity";
 
 export class PostgresSessionRepository implements SessionRepository {
-  constructor(private readonly db: Database) {}
+  constructor(private readonly db: DbOrTx) {}
 
   async createSession(session: Session): Promise<Session> {
     try {

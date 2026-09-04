@@ -15,4 +15,5 @@ export interface UserRepository {
   findByEmail(email: string): Promise<UserWithPasswordHash | null>;
   findById(id: string): Promise<User | null>;
   countByRole(role: User["role"]): Promise<number>;
+  updatePassword(userId: string, newPasswordHash: string): Promise<void>;
 }

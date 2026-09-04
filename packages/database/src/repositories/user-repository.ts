@@ -134,4 +134,26 @@ export class PostgresUserRepository implements UserRepository {
       throw new IdentityError("Database error during user count by role");
     }
   }
+
+  async updatePassword(userId: string, newPasswordHash: string): Promise<void> {
+    try {
+      const [updated] = await this.db
+        .update(users)
+        .set({
+          passwordHash: newPasswordHash,
+          updatedAt: new Date(),
+        })
+        .where(eq(users.id, userId))
+        .returning({ id: users.id });
+
+      if (!updated) {
+        throw new IdentityError("User not found for password update");
+      }
+    } catch (error: unknown) {
+      if (error instanceof IdentityError) {
+        throw error;
+      }
+      throw new IdentityError("Database error during password update");
+    }
+  }
 }

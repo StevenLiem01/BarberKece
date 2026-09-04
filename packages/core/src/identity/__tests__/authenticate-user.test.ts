@@ -9,6 +9,7 @@ describe("AuthenticateUserUseCase", () => {
     findByEmail: vi.fn(),
     findById: vi.fn(),
     countByRole: vi.fn(),
+    updatePassword: vi.fn(),
   };
 
   const mockPasswordHashing = {

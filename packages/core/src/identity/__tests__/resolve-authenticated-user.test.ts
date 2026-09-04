@@ -9,6 +9,7 @@ describe("ResolveAuthenticatedUserUseCase", () => {
     findByEmail: vi.fn(),
     findById: vi.fn(),
     countByRole: vi.fn(),
+    updatePassword: vi.fn(),
   };
 
   const mockTokenPort = {
