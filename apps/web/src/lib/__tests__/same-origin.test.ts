@@ -126,7 +126,7 @@ describe("validateSameOrigin helper", () => {
   describe("when Origin header is absent", () => {
     it("allows request when Referer host matches Host header", () => {
       const req = createRequest({
-        referer: "http://localhost:3000/login",
+        referer: "http://localhost:3000/sign-in",
         host: "localhost:3000",
       });
 

@@ -1,4 +1,20 @@
 import { defineConfig, devices } from "@playwright/test";
+import fs from "node:fs";
+import path from "node:path";
+
+// Load canonical monorepo root .env for local E2E runs if present.
+// Existing process.env variables (e.g. from CI) are preserved by process.loadEnvFile.
+const rootEnvPath = path.resolve(__dirname, "../../.env");
+
+if (fs.existsSync(rootEnvPath) && typeof process.loadEnvFile === "function") {
+  try {
+    process.loadEnvFile(rootEnvPath);
+  } catch (err: unknown) {
+    if ((err as NodeJS.ErrnoException).code !== "ENOENT") {
+      throw err;
+    }
+  }
+}
 
 const PORT = process.env.PORT || 3000;
 const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;

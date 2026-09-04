@@ -193,15 +193,15 @@ describe("auth helpers", () => {
       expect(mockRedirect).not.toHaveBeenCalled();
     });
 
-    it("redirects unauthenticated user to /login by default", async () => {
+    it("redirects unauthenticated user to /sign-in by default", async () => {
       vi.mocked(cookies).mockResolvedValue({
         get: vi.fn().mockReturnValue(undefined),
       } as unknown as Awaited<ReturnType<typeof cookies>>);
 
       await expect(requireAuthenticatedUser()).rejects.toThrow(
-        "NEXT_REDIRECT: /login",
+        "NEXT_REDIRECT: /sign-in",
       );
-      expect(mockRedirect).toHaveBeenCalledWith("/login");
+      expect(mockRedirect).toHaveBeenCalledWith("/sign-in");
     });
 
     it("redirects unauthenticated user to custom redirectTo", async () => {
@@ -223,9 +223,9 @@ describe("auth helpers", () => {
       mockExecute.mockResolvedValue(null);
 
       await expect(requireAuthenticatedUser()).rejects.toThrow(
-        "NEXT_REDIRECT: /login",
+        "NEXT_REDIRECT: /sign-in",
       );
-      expect(mockRedirect).toHaveBeenCalledWith("/login");
+      expect(mockRedirect).toHaveBeenCalledWith("/sign-in");
     });
   });
 
@@ -285,15 +285,15 @@ describe("auth helpers", () => {
       expect(user).toEqual(adminUser);
     });
 
-    it("rejects unauthenticated user by redirecting to /login", async () => {
+    it("rejects unauthenticated user by redirecting to /sign-in", async () => {
       vi.mocked(cookies).mockResolvedValue({
         get: vi.fn().mockReturnValue(undefined),
       } as unknown as Awaited<ReturnType<typeof cookies>>);
 
       await expect(requireRole("CUSTOMER")).rejects.toThrow(
-        "NEXT_REDIRECT: /login",
+        "NEXT_REDIRECT: /sign-in",
       );
-      expect(mockRedirect).toHaveBeenCalledWith("/login");
+      expect(mockRedirect).toHaveBeenCalledWith("/sign-in");
       expect(mockNotFound).not.toHaveBeenCalled();
     });
 
@@ -327,7 +327,7 @@ describe("auth helpers", () => {
       expect(mockNotFound).not.toHaveBeenCalled();
     });
 
-    it("rejects inactive user and redirects to /login", async () => {
+    it("rejects inactive user and redirects to /sign-in", async () => {
       vi.mocked(cookies).mockResolvedValue({
         get: vi.fn().mockReturnValue({ value: "inactive-token" }),
       } as unknown as Awaited<ReturnType<typeof cookies>>);
@@ -335,9 +335,9 @@ describe("auth helpers", () => {
       mockExecute.mockResolvedValue(null);
 
       await expect(requireRole("CUSTOMER")).rejects.toThrow(
-        "NEXT_REDIRECT: /login",
+        "NEXT_REDIRECT: /sign-in",
       );
-      expect(mockRedirect).toHaveBeenCalledWith("/login");
+      expect(mockRedirect).toHaveBeenCalledWith("/sign-in");
       expect(mockNotFound).not.toHaveBeenCalled();
     });
   });

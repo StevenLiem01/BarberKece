@@ -30,10 +30,10 @@ describe("Protected Layouts", () => {
     });
 
     it("fails when requireRole rejects unauthenticated user", async () => {
-      mockRequireRole.mockRejectedValue(new Error("NEXT_REDIRECT: /login"));
+      mockRequireRole.mockRejectedValue(new Error("NEXT_REDIRECT: /sign-in"));
 
       await expect(AccountLayout({ children: dummyChild })).rejects.toThrow(
-        "NEXT_REDIRECT: /login",
+        "NEXT_REDIRECT: /sign-in",
       );
       expect(mockRequireRole).toHaveBeenCalledWith("CUSTOMER");
     });
@@ -59,10 +59,10 @@ describe("Protected Layouts", () => {
     });
 
     it("fails when requireRole rejects unauthenticated user", async () => {
-      mockRequireRole.mockRejectedValue(new Error("NEXT_REDIRECT: /login"));
+      mockRequireRole.mockRejectedValue(new Error("NEXT_REDIRECT: /sign-in"));
 
       await expect(BarberLayout({ children: dummyChild })).rejects.toThrow(
-        "NEXT_REDIRECT: /login",
+        "NEXT_REDIRECT: /sign-in",
       );
       expect(mockRequireRole).toHaveBeenCalledWith("BARBER");
     });
@@ -88,10 +88,10 @@ describe("Protected Layouts", () => {
     });
 
     it("fails when requireRole rejects unauthenticated user", async () => {
-      mockRequireRole.mockRejectedValue(new Error("NEXT_REDIRECT: /login"));
+      mockRequireRole.mockRejectedValue(new Error("NEXT_REDIRECT: /sign-in"));
 
       await expect(AdminLayout({ children: dummyChild })).rejects.toThrow(
-        "NEXT_REDIRECT: /login",
+        "NEXT_REDIRECT: /sign-in",
       );
       expect(mockRequireRole).toHaveBeenCalledWith("ADMIN");
     });

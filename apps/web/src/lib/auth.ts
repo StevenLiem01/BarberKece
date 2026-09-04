@@ -69,13 +69,13 @@ export async function getAuthenticatedUser(): Promise<User | null> {
 /**
  * Requires the current request to be from an authenticated user.
  * If unauthenticated (no active session, expired session, or inactive user),
- * redirects to the specified route (default: `/login`).
+ * redirects to the specified route (default: `/sign-in`).
  *
  * @param redirectTo The path to redirect to when unauthenticated.
  * @returns The authenticated User entity.
  */
 export async function requireAuthenticatedUser(
-  redirectTo = "/login",
+  redirectTo = "/sign-in",
 ): Promise<User> {
   const user = await getAuthenticatedUser();
   if (!user) {
@@ -91,7 +91,7 @@ export interface RequireRoleOptions {
 
 /**
  * Requires the current request to be from an authenticated user with an authorized role.
- * - If unauthenticated, redirects to `/login`.
+ * - If unauthenticated, redirects to `/sign-in`.
  * - If authenticated but with an unauthorized role, triggers notFound() by default
  *   to avoid leaking the existence or structure of sensitive internal/role routes.
  *
