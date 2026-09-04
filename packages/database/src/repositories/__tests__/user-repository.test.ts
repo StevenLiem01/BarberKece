@@ -186,4 +186,32 @@ describe("PostgresUserRepository", () => {
       expect(err.message).toBe("Database error during user creation");
     }
   });
+
+  it("should correctly count users by role", async () => {
+    const email = `admin-count-${Date.now()}@example.com`;
+    const now = new Date();
+    const id = uuidv7();
+
+    const initialCount = await repository.countByRole("ADMIN");
+
+    await repository.createUser({
+      id,
+      email,
+      passwordHash: "hash",
+      role: "ADMIN",
+      status: "ACTIVE",
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    try {
+      const updatedCount = await repository.countByRole("ADMIN");
+      expect(updatedCount).toBe(initialCount + 1);
+    } finally {
+      await dbClient.db.delete(users).where(eq(users.id, id));
+    }
+
+    const finalCount = await repository.countByRole("ADMIN");
+    expect(finalCount).toBe(initialCount);
+  });
 });

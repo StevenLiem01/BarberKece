@@ -14,4 +14,5 @@ export interface UserRepository {
   createUser(params: CreateUserParams): Promise<User>;
   findByEmail(email: string): Promise<UserWithPasswordHash | null>;
   findById(id: string): Promise<User | null>;
+  countByRole(role: User["role"]): Promise<number>;
 }

@@ -1,5 +1,5 @@
-import { eq } from "drizzle-orm";
-import type { Database } from "../client.js";
+import { eq, sql } from "drizzle-orm";
+import type { DbOrTx } from "../client.js";
 import { users } from "../schema/identity/users.js";
 import {
   UserRepository,
@@ -12,7 +12,7 @@ import {
 } from "@barberkece/core/identity";
 
 export class PostgresUserRepository implements UserRepository {
-  constructor(private readonly db: Database) {}
+  constructor(private readonly db: DbOrTx) {}
 
   async createUser(params: CreateUserParams): Promise<User> {
     try {
@@ -120,6 +120,18 @@ export class PostgresUserRepository implements UserRepository {
       };
     } catch {
       throw new IdentityError("Database error during user lookup by ID");
+    }
+  }
+
+  async countByRole(role: UserRole): Promise<number> {
+    try {
+      const [result] = await this.db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(users)
+        .where(eq(users.role, role));
+      return result?.count ?? 0;
+    } catch {
+      throw new IdentityError("Database error during user count by role");
     }
   }
 }

@@ -4,6 +4,7 @@
   "private": true,
   "packageManager": "pnpm@11.24.0",
   "scripts": {
+    "admin:bootstrap": "node tooling/scripts/bootstrap-admin.mjs",
     "db:check": "node tooling/scripts/db-check.mjs",
     "db:generate": "pnpm --filter @barberkece/database db:generate",
     "db:migrate": "pnpm --filter @barberkece/database db:migrate",
