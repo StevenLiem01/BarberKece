@@ -1006,12 +1006,102 @@ Direction:
 
 Tidak menggunakan reversible encryption, MD5, atau SHA1.
 
-Reset dan invitation token harus:
+Password policy canonical: minimum 8 characters (sama dengan registration dan login foundation; tidak ada reset-only policy yang berbeda).
 
-- high entropy
-- short-lived
-- single-use
-- hashed at rest jika feasible
+## 25.1 Password Reset Specification
+
+Status: **LOCKED**
+
+### 1. Reset Token Lifetime
+- Lifetime: **30 minutes** (1800 seconds).
+- Semantics: `expires_at = created_at + 30 minutes`.
+- Server-side `expires_at` is authoritative.
+- Expired tokens are invalid; no grace period.
+
+### 2. Single-Use Behavior
+- Reset tokens are strictly single-use.
+- A successful password reset consumes the token by setting `used_at = NOW()`.
+- Once consumed (`used_at IS NOT NULL`), the token can never be used again.
+
+### 3. Token Invalidation & Replacement Lifecycle
+- When a new password reset token is requested for a known, eligible user:
+  - Must execute inside the serialized issuance transaction (see section 10.A).
+  - Invalidate all prior ACTIVE, unused password-reset tokens for that user (by setting `used_at = NOW()` on any records where `user_id = :userId AND used_at IS NULL AND expires_at > NOW()`).
+  - Then create and persist the new token.
+- Invariant: at most ONE active usable reset token exists per user at any given time.
+- Older emailed reset links become immediately invalid once a newer reset request is issued.
+- Historical records are preserved for audit/retention; no hard deletions required.
+
+### 4. Enumeration-Safe Request Behavior
+- Public reset-request endpoint behavior must remain strictly enumeration-safe.
+- Known and unknown emails produce the identical HTTP status (200 OK) and public response envelope message.
+- Response provides no indication whether the account exists, whether a token was created, or whether prior active tokens existed.
+- Unknown emails trigger zero token creation, zero database locks/writes, and zero email side effects.
+
+### 5. Session Revocation
+- Upon successful password reset, ALL active sessions for the authoritative `userId` must be revoked in PostgreSQL (`SessionRepository.revokeAllSessionsForUser`).
+- User must log in again to establish a new authenticated session.
+- Failed or invalid reset attempts must NOT revoke existing sessions.
+
+### 6. Canonical Frontend Route & Link Format
+- Customer reset page: `/reset-password`
+- Reset link format: `${APP_URL}/reset-password?token=<raw-token>`
+- Raw token rules:
+  - High-entropy, cryptographically random, URL-safe string generated via `TokenPort.generateToken()`.
+  - Stored in database ONLY as a deterministic SHA-256 hash (`token_hash`).
+  - Raw token is never persisted, never logged, and never returned in API JSON responses.
+
+### 7. Canonical API Endpoints
+- `POST /api/v1/auth/password-reset/request`
+  - Input: `{ email: string }`
+  - Output: enumeration-safe standard envelope (200 OK). Never returns token in JSON.
+- `POST /api/v1/auth/password-reset/confirm`
+  - Input: `{ token: string, newPassword: string }`
+  - Output: standard success envelope (200 OK).
+  - Security invariant: Never accept `userId`, `email`, `tokenHash`, `role`, or `status` from client during confirm.
+
+### 8. CSRF / Same-Origin Protection
+- Both `POST` endpoints enforce canonical fail-closed same-origin validation (`validateSameOrigin`):
+  - Matching `Origin` -> allow.
+  - Missing `Origin` with matching `Referer` -> allow.
+  - Missing both `Origin` and `Referer` -> reject (403 FORBIDDEN).
+  - Cross-origin / malformed -> reject (403 FORBIDDEN).
+
+### 9. Email Delivery & Privacy (M1)
+- Triggered asynchronously via `EmailPort.sendEmail(...)`.
+- M1 development uses `ConsoleEmailAdapter`.
+- Privacy invariant: `ConsoleEmailAdapter` logs only masked recipient and delivery metadata; the raw reset token and email body/link remain strictly omitted from logs.
+
+### 10. Transaction & Concurrency Policy
+
+#### A. Token Issuance Concurrency (Reset Requests)
+- For a known, eligible user, reset-token issuance must execute atomically inside a single PostgreSQL transaction:
+  1. **Serialize reset-token issuance** for the authoritative `userId` using a deterministic, per-user PostgreSQL transaction advisory lock (`pg_advisory_xact_lock(...)`). The lock identity is derived deterministically from a dedicated operation namespace and the `userId` (e.g. 64-bit bigint hash or two 32-bit integers).
+     - Because advisory locks are transaction-scoped, PostgreSQL automatically releases the lock upon commit or rollback.
+     - Different users do not block each other; no global lock is used.
+     - This safely serializes concurrent requests even when no active token rows exist yet, without requiring any schema migrations or phantom-prone row locking.
+  2. **Invalidate all prior active unused reset tokens** for that user:
+     `UPDATE password_reset_tokens SET used_at = NOW() WHERE user_id = :userId AND used_at IS NULL AND expires_at > NOW()`
+  3. **Create and insert the new reset token** with its hashed value (`token_hash`), authoritative `userId`, and `expires_at = NOW() + INTERVAL '30 minutes'`.
+  4. **Commit** the transaction.
+- **Invariant**: Two concurrent reset requests for the same user cannot interleave to produce multiple active tokens. Exactly one transaction executes the invalidation-and-insert sequence at a time under the advisory lock.
+- **Failure Atomicity**:
+  - If token invalidation succeeds but insertion of the new token fails (or any error occurs before commit), the transaction rolls back completely; the previous active token state remains unchanged.
+- **Side-Effect Boundary (Email Delivery)**:
+  - Email dispatch via `EmailPort.sendEmail(...)` must occur strictly AFTER the database transaction commits. External I/O is never executed inside the transaction.
+  - If email delivery fails post-commit, the committed database state is not rolled back. Side-effect failure follows the standard canonical `EmailPort` policy without inventing custom retries in this task.
+
+#### B. Token Consumption Concurrency (Reset Confirmation)
+- Reset confirmation must be race-safe.
+- Two concurrent attempts presenting the same raw reset token must serialize in a single PostgreSQL transaction using row-level locking (`SELECT ... FOR UPDATE` on `password_reset_tokens` by `token_hash`).
+- Within this transaction:
+  1. Revalidate that the locked token row exists, `used_at IS NULL`, and `expires_at > NOW()`.
+  2. Update the user's password in `users` with the new Argon2id hash.
+  3. Mark the token consumed: `UPDATE password_reset_tokens SET used_at = NOW() WHERE id = :tokenId`.
+  4. Revoke all active sessions for the authoritative `userId` (`SessionRepository.revokeAllSessionsForUser`).
+  5. Commit the transaction.
+- **Invariant**: Exactly one concurrent confirmation transaction succeeds and commits. Competing attempts blocked on the row lock will, upon lock acquisition, observe `used_at IS NOT NULL` and fail safely with an invalid/expired token error.
+- Failed or invalid confirmation attempts roll back without modifying password or revoking sessions.
 
 ---
 
