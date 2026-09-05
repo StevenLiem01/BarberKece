@@ -19,6 +19,22 @@ jobs:
   validate:
     name: Validation & Tests
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: "postgresql://barberkece_dev:barberkece_dev@localhost:5432/barberkece_dev"
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: barberkece_dev
+          POSTGRES_PASSWORD: barberkece_dev
+          POSTGRES_DB: barberkece_dev
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -48,6 +64,9 @@ jobs:
 
       - name: Run typecheck
         run: pnpm --recursive run --if-present typecheck
+
+      - name: Initialize Database Schema
+        run: pnpm db:migrate
 
       - name: Run unit tests
         run: pnpm test
