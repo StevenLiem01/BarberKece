@@ -5,8 +5,9 @@ export {
   type Transaction,
   type DbOrTx,
 } from "./client.js";
-export * as schema from "./schema/index.js";
-export * as repositories from "./repositories/index.js";
+import * as schema from "./schema/index.js";
+import * as repositories from "./repositories/index.js";
+export { schema, repositories };
 export { sql } from "drizzle-orm";
 
 /**

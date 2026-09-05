@@ -5,20 +5,23 @@ export * from "./email/index.js";
 export * from "./media/index.js";
 export * from "./identity/index.js";
 
-export * as media from "./media/index.js";
+import * as media from "./media/index.js";
+export { media };
 export {
   LocalFilesystemMediaAdapter,
   type LocalFilesystemMediaAdapterConfig,
   StoragePathTraversalError,
 } from "./media/index.js";
 
-export * as email from "./email/index.js";
+import * as email from "./email/index.js";
+export { email };
 export {
   ConsoleEmailAdapter,
   type ConsoleEmailAdapterConfig,
 } from "./email/index.js";
 
-export * as logging from "./logging/index.js";
+import * as logging from "./logging/index.js";
+export { logging };
 export {
   type Logger,
   type LoggerOptions,
