@@ -21,6 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DATABASE_URL: "postgresql://barberkece_dev:barberkece_dev@localhost:5432/barberkece_dev"
+      APP_URL: "http://localhost:3000"
     services:
       postgres:
         image: postgres:16
