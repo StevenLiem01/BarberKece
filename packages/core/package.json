@@ -11,6 +11,14 @@
     "./identity": {
       "types": "./dist/identity/index.d.ts",
       "default": "./dist/identity/index.js"
+    },
+    "./reservation": {
+      "types": "./dist/reservation/index.d.ts",
+      "default": "./dist/reservation/index.js"
+    },
+    "./barber": {
+      "types": "./dist/barber/index.d.ts",
+      "default": "./dist/barber/index.js"
     }
   },
   "scripts": {
