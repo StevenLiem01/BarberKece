@@ -62,3 +62,42 @@ export class InvalidAppointmentStatusTransitionError extends ReservationError {
     this.name = "InvalidAppointmentStatusTransitionError";
   }
 }
+
+export class InactiveServiceError extends ReservationError {
+  constructor(id: string) {
+    super(`Service is inactive: ${id}`);
+    this.name = "InactiveServiceError";
+  }
+}
+
+export class BarberNotEligibleError extends ReservationError {
+  constructor(barberProfileId: string, serviceId: string) {
+    super(
+      `Barber ${barberProfileId} is not eligible to perform service ${serviceId}`,
+    );
+    this.name = "BarberNotEligibleError";
+  }
+}
+
+export class InvalidBookingDateError extends ReservationError {
+  constructor(message = "Booking date is invalid or in the past") {
+    super(message);
+    this.name = "InvalidBookingDateError";
+  }
+}
+
+export class BookingHorizonExceededError extends ReservationError {
+  constructor(date: string, maxDate: string) {
+    super(`Booking date ${date} exceeds maximum booking horizon of ${maxDate}`);
+    this.name = "BookingHorizonExceededError";
+  }
+}
+
+export class InvalidBookingHorizonConfigError extends ReservationError {
+  constructor(days: number) {
+    super(
+      `Invalid booking horizon configuration: ${days} days (must be between 7 and 90 days)`,
+    );
+    this.name = "InvalidBookingHorizonConfigError";
+  }
+}

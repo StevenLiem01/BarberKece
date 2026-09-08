@@ -6,7 +6,10 @@ export * from "./models/schedule-exception.js";
 
 export * from "./domain/appointment-status.js";
 export * from "./domain/time-interval.js";
+export * from "./domain/date-utils.js";
+export * from "./domain/availability-calculator.js";
 
+export * from "./ports/clock.js";
 export * from "./ports/service-repository.js";
 export * from "./ports/barber-eligibility-repository.js";
 export * from "./ports/appointment-repository.js";
@@ -22,3 +25,4 @@ export * from "./use-cases/list-services.js";
 export * from "./use-cases/assign-service-to-barber.js";
 export * from "./use-cases/remove-service-from-barber.js";
 export * from "./use-cases/get-barber-eligible-services.js";
+export * from "./use-cases/get-available-slots.js";

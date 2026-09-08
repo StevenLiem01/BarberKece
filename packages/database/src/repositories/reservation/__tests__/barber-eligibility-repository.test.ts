@@ -123,4 +123,40 @@ describe("PostgresBarberEligibilityRepository", () => {
     const eligible = await repository.findServicesByBarberId(barberId);
     expect(eligible.length).toBe(1);
   });
+
+  it("should check eligibility accurately with isEligible", async () => {
+    const barberId = await createTestBarber();
+    const service1 = await createTestService("Service Eligibility 1");
+    const service2 = await createTestService("Service Eligibility 2");
+
+    expect(await repository.isEligible(barberId, service1)).toBe(false);
+
+    await repository.assignService(barberId, service1);
+    expect(await repository.isEligible(barberId, service1)).toBe(true);
+    expect(await repository.isEligible(barberId, service2)).toBe(false);
+
+    await repository.removeService(barberId, service1);
+    expect(await repository.isEligible(barberId, service1)).toBe(false);
+  });
+
+  it("should return eligible barber profile IDs deterministically ordered", async () => {
+    const barber1 = await createTestBarber();
+    const barber2 = await createTestBarber();
+    const service = await createTestService("Service Multi-Barber");
+
+    // Initially no barbers eligible
+    expect(await repository.findEligibleBarberProfileIds(service)).toEqual([]);
+
+    await repository.assignService(barber1, service);
+    await repository.assignService(barber2, service);
+
+    const eligibleIds = await repository.findEligibleBarberProfileIds(service);
+    expect(eligibleIds).toHaveLength(2);
+    expect(eligibleIds).toContain(barber1);
+    expect(eligibleIds).toContain(barber2);
+
+    // Verify deterministic ordering: sorted by barberProfileId ascending
+    const expectedOrder = [barber1, barber2].sort();
+    expect(eligibleIds).toEqual(expectedOrder);
+  });
 });

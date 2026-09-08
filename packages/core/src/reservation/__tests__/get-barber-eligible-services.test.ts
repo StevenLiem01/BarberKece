@@ -39,6 +39,8 @@ describe("GetBarberEligibleServicesUseCase", () => {
     assignService: vi.fn(),
     removeService: vi.fn(),
     findServicesByBarberId: vi.fn(),
+    isEligible: vi.fn(),
+    findEligibleBarberProfileIds: vi.fn(),
   };
 
   let useCase: GetBarberEligibleServicesUseCase;

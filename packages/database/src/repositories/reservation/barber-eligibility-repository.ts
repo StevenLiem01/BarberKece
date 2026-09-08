@@ -49,4 +49,32 @@ export class PostgresBarberEligibilityRepository implements BarberEligibilityRep
 
     return results.map((row) => row.service);
   }
+
+  async isEligible(
+    barberProfileId: string,
+    serviceId: string,
+  ): Promise<boolean> {
+    const [found] = await this.db
+      .select({ barberProfileId: barberServices.barberProfileId })
+      .from(barberServices)
+      .where(
+        and(
+          eq(barberServices.barberProfileId, barberProfileId),
+          eq(barberServices.serviceId, serviceId),
+        ),
+      )
+      .limit(1);
+
+    return Boolean(found);
+  }
+
+  async findEligibleBarberProfileIds(serviceId: string): Promise<string[]> {
+    const results = await this.db
+      .select({ barberProfileId: barberServices.barberProfileId })
+      .from(barberServices)
+      .where(eq(barberServices.serviceId, serviceId))
+      .orderBy(barberServices.barberProfileId);
+
+    return results.map((row) => row.barberProfileId);
+  }
 }
