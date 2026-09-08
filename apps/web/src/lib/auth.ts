@@ -115,3 +115,48 @@ export async function requireRole(
 
   return user;
 }
+
+export type AdminAuthResult =
+  | { user: User; response?: never }
+  | { user?: never; response: import("next/server").NextResponse };
+
+/**
+ * Validates that the request has an active session with role ADMIN for API route handlers.
+ * Returns either { user } or { response: NextResponse } with standardized 401 or 403 JSON payload.
+ */
+export async function authenticateAdminApi(
+  requestId: string,
+): Promise<AdminAuthResult> {
+  const user = await getAuthenticatedUser();
+  if (!user) {
+    return {
+      response: (await import("next/server")).NextResponse.json(
+        {
+          error: {
+            code: "UNAUTHORIZED",
+            message: "Authentication required",
+            requestId,
+          },
+        },
+        { status: 401 },
+      ),
+    };
+  }
+
+  if (user.role !== "ADMIN") {
+    return {
+      response: (await import("next/server")).NextResponse.json(
+        {
+          error: {
+            code: "FORBIDDEN",
+            message: "Admin role required",
+            requestId,
+          },
+        },
+        { status: 403 },
+      ),
+    };
+  }
+
+  return { user };
+}

@@ -3,6 +3,7 @@ import type { DbOrTx } from "../../client.js";
 import { barberProfiles } from "../../schema/barber/barber_profiles.js";
 import {
   BarberProfile,
+  BarberProfileAlreadyExistsError,
   BarberProfileRepository,
   ProvisionBarberProfileParams,
 } from "@barberkece/core/barber";
@@ -13,20 +14,39 @@ export class PostgresBarberProfileRepository implements BarberProfileRepository 
   async provisionProfile(
     params: ProvisionBarberProfileParams,
   ): Promise<BarberProfile> {
-    const [inserted] = await this.db
-      .insert(barberProfiles)
-      .values({
-        id: params.id,
-        userId: params.userId,
-        specialization: params.specialization ?? null,
-      })
-      .returning();
+    try {
+      const [inserted] = await this.db
+        .insert(barberProfiles)
+        .values({
+          id: params.id,
+          userId: params.userId,
+          specialization: params.specialization ?? null,
+        })
+        .returning();
 
-    if (!inserted) {
-      throw new Error("Failed to provision barber profile");
+      if (!inserted) {
+        throw new Error("Failed to provision barber profile");
+      }
+
+      return inserted;
+    } catch (error: unknown) {
+      if (
+        (typeof error === "object" &&
+          error !== null &&
+          "code" in error &&
+          (error as { code?: string }).code === "23505") ||
+        (typeof error === "object" &&
+          error !== null &&
+          "cause" in error &&
+          typeof (error as { cause?: unknown }).cause === "object" &&
+          (error as { cause: { code?: string } }).cause !== null &&
+          "code" in (error as { cause: { code?: string } }).cause &&
+          (error as { cause: { code?: string } }).cause.code === "23505")
+      ) {
+        throw new BarberProfileAlreadyExistsError(params.userId);
+      }
+      throw error;
     }
-
-    return inserted;
   }
 
   async updateSpecialization(

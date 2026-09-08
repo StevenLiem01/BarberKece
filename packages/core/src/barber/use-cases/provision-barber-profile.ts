@@ -1,7 +1,11 @@
 import { uuidv7 } from "uuidv7";
 import { BarberProfile } from "../models/barber-profile.js";
 import { BarberProfileRepository } from "../ports/barber-profile-repository.js";
-import { BarberError } from "../errors.js";
+import {
+  BarberUserNotFoundError,
+  InvalidBarberRoleError,
+  BarberProfileAlreadyExistsError,
+} from "../errors.js";
 import { UserRepository } from "../../identity/ports/user-repository.js";
 
 export interface ProvisionBarberProfileInput {
@@ -19,16 +23,21 @@ export class ProvisionBarberProfileUseCase {
     // Verify user exists and has BARBER role
     const user = await this.userRepository.findById(input.userId);
     if (!user) {
-      throw new BarberError(`User not found: ${input.userId}`);
+      throw new BarberUserNotFoundError(input.userId);
     }
     if (user.role !== "BARBER") {
-      throw new BarberError(
-        `User ${input.userId} does not have the BARBER role`,
-      );
+      throw new InvalidBarberRoleError(input.userId, user.role);
     }
 
-    // Delegate duplicate enforcement to the DB unique constraint.
-    // The repository will throw on violation; we let it propagate.
+    // Application-level pre-check
+    const existing = await this.barberProfileRepository.findByUserId(
+      input.userId,
+    );
+    if (existing) {
+      throw new BarberProfileAlreadyExistsError(input.userId);
+    }
+
+    // Delegate final insertion and race enforcement to the repository/database
     return this.barberProfileRepository.provisionProfile({
       id: uuidv7(),
       userId: input.userId,

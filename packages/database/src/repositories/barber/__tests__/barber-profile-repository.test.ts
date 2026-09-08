@@ -9,6 +9,7 @@ import { users } from "../../../schema/identity/users.js";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import process from "node:process";
+import { BarberProfileAlreadyExistsError } from "@barberkece/core/barber";
 
 const candidatePaths = [
   resolve(process.cwd(), ".env"),
@@ -118,7 +119,7 @@ describe("PostgresBarberProfileRepository", () => {
     expect(byId?.id).toBe(id);
   });
 
-  it("should reject a second profile for the same user (unique user_id constraint)", async () => {
+  it("should reject a second profile for the same user (unique user_id constraint) with BarberProfileAlreadyExistsError", async () => {
     const userId = await createTestUser();
     const id1 = uuidv7();
     const id2 = uuidv7();
@@ -131,6 +132,6 @@ describe("PostgresBarberProfileRepository", () => {
 
     await expect(
       repository.provisionProfile({ id: id2, userId }),
-    ).rejects.toThrow();
+    ).rejects.toThrow(BarberProfileAlreadyExistsError);
   });
 });

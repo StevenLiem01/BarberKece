@@ -4,7 +4,7 @@ import { ServiceRepository } from "../ports/service-repository.js";
 import { ServiceNotFoundError } from "../errors.js";
 import { Service } from "../models/service.js";
 
-const makeService = (): Service => ({
+const makeService = (overrides: Partial<Service> = {}): Service => ({
   id: "svc-1",
   name: "Haircut",
   description: null,
@@ -13,6 +13,7 @@ const makeService = (): Service => ({
   isActive: true,
   createdAt: new Date(),
   updatedAt: new Date(),
+  ...overrides,
 });
 
 describe("GetServiceUseCase", () => {
@@ -40,6 +41,37 @@ describe("GetServiceUseCase", () => {
 
     expect(mockRepo.findById).toHaveBeenCalledWith("svc-1");
     expect(result).toEqual(svc);
+  });
+
+  it("returns inactive service when activeOnly is false or omitted", async () => {
+    const inactive = makeService({ isActive: false });
+    vi.mocked(mockRepo.findById).mockResolvedValueOnce(inactive);
+
+    const result = await useCase.execute("svc-1");
+    expect(result).toEqual(inactive);
+
+    vi.mocked(mockRepo.findById).mockResolvedValueOnce(inactive);
+    const resultExplicit = await useCase.execute("svc-1", {
+      activeOnly: false,
+    });
+    expect(resultExplicit).toEqual(inactive);
+  });
+
+  it("returns active service when activeOnly is true", async () => {
+    const active = makeService({ isActive: true });
+    vi.mocked(mockRepo.findById).mockResolvedValueOnce(active);
+
+    const result = await useCase.execute("svc-1", { activeOnly: true });
+    expect(result).toEqual(active);
+  });
+
+  it("throws ServiceNotFoundError when activeOnly is true and service is inactive", async () => {
+    const inactive = makeService({ isActive: false });
+    vi.mocked(mockRepo.findById).mockResolvedValueOnce(inactive);
+
+    await expect(
+      useCase.execute("svc-1", { activeOnly: true }),
+    ).rejects.toThrowError(ServiceNotFoundError);
   });
 
   it("throws ServiceNotFoundError when not found", async () => {

@@ -9,3 +9,4 @@ export * from "./use-cases/get-service.js";
 export * from "./use-cases/list-services.js";
 export * from "./use-cases/assign-service-to-barber.js";
 export * from "./use-cases/remove-service-from-barber.js";
+export * from "./use-cases/get-barber-eligible-services.js";
