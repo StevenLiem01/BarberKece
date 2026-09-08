@@ -4,4 +4,6 @@ export * from "./password-reset-token-repository.js";
 export * from "./password-reset-transaction-runner.js";
 export * from "./reservation/service-repository.js";
 export * from "./reservation/barber-eligibility-repository.js";
+export * from "./reservation/postgres-appointment-repository.js";
+export * from "./reservation/postgres-schedule-repository.js";
 export * from "./barber/barber-profile-repository.js";

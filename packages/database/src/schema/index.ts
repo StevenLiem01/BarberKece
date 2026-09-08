@@ -6,3 +6,8 @@ export * from "./identity/staff_invitations.js";
 export * from "./reservation/services.js";
 export * from "./barber/barber_profiles.js";
 export * from "./reservation/barber_services.js";
+
+export * from "./reservation/business_hours.js";
+export * from "./reservation/barber_schedules.js";
+export * from "./reservation/schedule_exceptions.js";
+export * from "./reservation/appointments.js";
