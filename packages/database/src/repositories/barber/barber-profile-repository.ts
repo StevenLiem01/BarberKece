@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import type { DbOrTx } from "../../client.js";
 import { barberProfiles } from "../../schema/barber/barber_profiles.js";
 import {
@@ -89,5 +89,20 @@ export class PostgresBarberProfileRepository implements BarberProfileRepository 
     return this.db.query.barberProfiles.findMany({
       orderBy: (barberProfiles, { desc }) => [desc(barberProfiles.createdAt)],
     });
+  }
+
+  async lockProfiles(ids: string[]): Promise<string[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+    const sortedIds = [...ids].sort();
+    const rows = await this.db
+      .select({ id: barberProfiles.id })
+      .from(barberProfiles)
+      .where(inArray(barberProfiles.id, sortedIds))
+      .orderBy(barberProfiles.id)
+      .for("update");
+
+    return rows.map((r) => r.id);
   }
 }

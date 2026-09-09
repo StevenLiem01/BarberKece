@@ -19,6 +19,7 @@ describe("GetBarberProfileUseCase", () => {
     findById: vi.fn(),
     findByUserId: vi.fn(),
     findAll: vi.fn(),
+    lockProfiles: vi.fn(),
   };
 
   let useCase: GetBarberProfileUseCase;

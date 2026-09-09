@@ -5,6 +5,7 @@ import {
   check,
   uuid,
   integer,
+  boolean,
   pgEnum,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
@@ -52,6 +53,7 @@ export const appointments = pgTable(
     priceRupiah: integer("price_rupiah").notNull(),
     notes: text("notes"),
     cancellationReason: text("cancellation_reason"),
+    isAutoAssigned: boolean("is_auto_assigned").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
       .notNull()
       .defaultNow(),

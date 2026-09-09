@@ -215,6 +215,7 @@ describe("AvailabilityCalculator", () => {
       priceRupiah: 50000,
       notes: null,
       cancellationReason: null,
+      isAutoAssigned: false,
       createdAt: new Date(),
       updatedAt: new Date(),
     };

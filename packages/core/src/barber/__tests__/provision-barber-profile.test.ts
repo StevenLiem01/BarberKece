@@ -37,6 +37,7 @@ describe("ProvisionBarberProfileUseCase", () => {
     findById: vi.fn(),
     findByUserId: vi.fn(),
     findAll: vi.fn(),
+    lockProfiles: vi.fn(),
   };
 
   const mockUserRepo: UserRepository = {

@@ -13,6 +13,7 @@ export interface Appointment {
   priceRupiah: number;
   notes: string | null;
   cancellationReason: string | null;
+  isAutoAssigned: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

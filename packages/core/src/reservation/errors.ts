@@ -101,3 +101,39 @@ export class InvalidBookingHorizonConfigError extends ReservationError {
     this.name = "InvalidBookingHorizonConfigError";
   }
 }
+
+export class OutsideBusinessHoursError extends ReservationError {
+  constructor(
+    message = "Requested appointment interval falls outside business hours",
+  ) {
+    super(message);
+    this.name = "OutsideBusinessHoursError";
+  }
+}
+
+export class BarberNotWorkingError extends ReservationError {
+  constructor(barberProfileId: string) {
+    super(
+      `Barber ${barberProfileId} is not scheduled to work during the requested time window`,
+    );
+    this.name = "BarberNotWorkingError";
+  }
+}
+
+export class ScheduleExceptionConflictError extends ReservationError {
+  constructor(reason: string) {
+    super(
+      `Requested appointment conflicts with a schedule exception: ${reason}`,
+    );
+    this.name = "ScheduleExceptionConflictError";
+  }
+}
+
+export class IdempotencyPayloadMismatchError extends ReservationError {
+  constructor(key: string) {
+    super(
+      `Idempotency key "${key}" was previously used with a different request payload`,
+    );
+    this.name = "IdempotencyPayloadMismatchError";
+  }
+}

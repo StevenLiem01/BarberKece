@@ -33,6 +33,7 @@ describe("GetBarberEligibleServicesUseCase", () => {
     findById: vi.fn(),
     findByUserId: vi.fn(),
     findAll: vi.fn(),
+    lockProfiles: vi.fn(),
   };
 
   const mockEligibilityRepo: BarberEligibilityRepository = {

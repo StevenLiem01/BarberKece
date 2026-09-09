@@ -7,3 +7,5 @@ export * from "./reservation/barber-eligibility-repository.js";
 export * from "./reservation/postgres-appointment-repository.js";
 export * from "./reservation/postgres-schedule-repository.js";
 export * from "./barber/barber-profile-repository.js";
+export * from "./reservation/postgres-idempotency-repository.js";
+export * from "./reservation/booking-transaction-runner.js";

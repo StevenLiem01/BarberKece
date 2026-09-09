@@ -34,6 +34,7 @@ describe("AssignServiceToBarberUseCase", () => {
     findById: vi.fn(),
     findByUserId: vi.fn(),
     findAll: vi.fn(),
+    lockProfiles: vi.fn(),
   };
 
   const mockServiceRepo: ServiceRepository = {

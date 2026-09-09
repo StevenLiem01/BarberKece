@@ -17,4 +17,5 @@ export interface BarberProfileRepository {
   findById(id: string): Promise<BarberProfile | null>;
   findByUserId(userId: string): Promise<BarberProfile | null>;
   findAll(): Promise<BarberProfile[]>;
+  lockProfiles(ids: string[]): Promise<string[]>;
 }
