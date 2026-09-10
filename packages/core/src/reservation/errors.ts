@@ -137,3 +137,30 @@ export class IdempotencyPayloadMismatchError extends ReservationError {
     this.name = "IdempotencyPayloadMismatchError";
   }
 }
+
+export class AppointmentOwnershipError extends ReservationError {
+  constructor(appointmentId: string, actorId: string) {
+    super(
+      `Actor ${actorId} is not authorized to manage appointment ${appointmentId}`,
+    );
+    this.name = "AppointmentOwnershipError";
+  }
+}
+
+export class CancellationCutoffExceededError extends ReservationError {
+  constructor(startsAt: Date, cutoffHours = 2) {
+    super(
+      `Appointment at ${startsAt.toISOString()} cannot be cancelled less than ${cutoffHours} hours before start time`,
+    );
+    this.name = "CancellationCutoffExceededError";
+  }
+}
+
+export class RescheduleCutoffExceededError extends ReservationError {
+  constructor(startsAt: Date, cutoffHours = 2) {
+    super(
+      `Appointment at ${startsAt.toISOString()} cannot be rescheduled less than ${cutoffHours} hours before start time`,
+    );
+    this.name = "RescheduleCutoffExceededError";
+  }
+}

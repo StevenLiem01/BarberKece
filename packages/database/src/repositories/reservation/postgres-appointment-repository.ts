@@ -1,4 +1,4 @@
-import { and, eq, gt, inArray, lt, sql } from "drizzle-orm";
+import { and, eq, gt, inArray, lt, ne, sql } from "drizzle-orm";
 import type { DbOrTx } from "../../client.js";
 import { appointments } from "../../schema/reservation/appointments.js";
 import {
@@ -106,6 +106,16 @@ export class PostgresAppointmentRepository implements AppointmentRepository {
     return found ?? null;
   }
 
+  async lockAppointment(id: string): Promise<Appointment | null> {
+    const [found] = await this.db
+      .select()
+      .from(appointments)
+      .where(eq(appointments.id, id))
+      .for("update");
+
+    return found ?? null;
+  }
+
   async findByBookingReference(reference: string): Promise<Appointment | null> {
     const [found] = await this.db
       .select()
@@ -148,6 +158,52 @@ export class PostgresAppointmentRepository implements AppointmentRepository {
     return updated;
   }
 
+  async rescheduleAppointment(
+    id: string,
+    newStartsAt: Date,
+    newEndsAt: Date,
+  ): Promise<Appointment> {
+    try {
+      const [updated] = await this.db
+        .update(appointments)
+        .set({
+          startsAt: newStartsAt,
+          endsAt: newEndsAt,
+          updatedAt: new Date(),
+        })
+        .where(eq(appointments.id, id))
+        .returning();
+
+      if (!updated) {
+        throw new AppointmentNotFoundError(id);
+      }
+
+      return updated;
+    } catch (error: unknown) {
+      const pgErr = extractPostgresError(error);
+      if (pgErr?.code === "23P01") {
+        const constraintName = pgErr.constraint_name ?? pgErr.constraint;
+        if (constraintName === "no_overlapping_barber_appointments") {
+          throw new SlotAlreadyBookedError(undefined, {
+            startsAt: newStartsAt,
+            endsAt: newEndsAt,
+          });
+        }
+        if (constraintName === "no_overlapping_customer_appointments") {
+          throw new CustomerBookingConflictError(undefined, {
+            startsAt: newStartsAt,
+            endsAt: newEndsAt,
+          });
+        }
+        throw new SlotAlreadyBookedError(undefined, {
+          startsAt: newStartsAt,
+          endsAt: newEndsAt,
+        });
+      }
+      throw error;
+    }
+  }
+
   async findActiveByBarberAndInterval(
     barberProfileId: string,
     interval: TimeInterval,
@@ -165,6 +221,25 @@ export class PostgresAppointmentRepository implements AppointmentRepository {
       );
   }
 
+  async findActiveByBarberAndIntervalExcluding(
+    barberProfileId: string,
+    interval: TimeInterval,
+    excludeAppointmentId: string,
+  ): Promise<Appointment[]> {
+    return this.db
+      .select()
+      .from(appointments)
+      .where(
+        and(
+          eq(appointments.barberProfileId, barberProfileId),
+          inArray(appointments.status, [...ACTIVE_APPOINTMENT_STATUSES]),
+          lt(appointments.startsAt, interval.endsAt),
+          gt(appointments.endsAt, interval.startsAt),
+          ne(appointments.id, excludeAppointmentId),
+        ),
+      );
+  }
+
   async findActiveByCustomerAndInterval(
     customerId: string,
     interval: TimeInterval,
@@ -178,6 +253,25 @@ export class PostgresAppointmentRepository implements AppointmentRepository {
           inArray(appointments.status, [...ACTIVE_APPOINTMENT_STATUSES]),
           lt(appointments.startsAt, interval.endsAt),
           gt(appointments.endsAt, interval.startsAt),
+        ),
+      );
+  }
+
+  async findActiveByCustomerAndIntervalExcluding(
+    customerId: string,
+    interval: TimeInterval,
+    excludeAppointmentId: string,
+  ): Promise<Appointment[]> {
+    return this.db
+      .select()
+      .from(appointments)
+      .where(
+        and(
+          eq(appointments.customerId, customerId),
+          inArray(appointments.status, [...ACTIVE_APPOINTMENT_STATUSES]),
+          lt(appointments.startsAt, interval.endsAt),
+          gt(appointments.endsAt, interval.startsAt),
+          ne(appointments.id, excludeAppointmentId),
         ),
       );
   }

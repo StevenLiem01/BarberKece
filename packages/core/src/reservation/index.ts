@@ -31,3 +31,5 @@ export * from "./use-cases/remove-service-from-barber.js";
 export * from "./use-cases/get-barber-eligible-services.js";
 export * from "./use-cases/get-available-slots.js";
 export * from "./use-cases/confirm-booking.js";
+export * from "./use-cases/cancel-appointment.js";
+export * from "./use-cases/reschedule-appointment.js";

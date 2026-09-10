@@ -125,6 +125,10 @@ describe("ConfirmBookingUseCase", () => {
       updateStatus: vi.fn(),
       findActiveByBarberAndInterval: vi.fn(async () => []),
       findActiveByCustomerAndInterval: vi.fn(async () => []),
+      findActiveByBarberAndIntervalExcluding: vi.fn(async () => []),
+      findActiveByCustomerAndIntervalExcluding: vi.fn(async () => []),
+      lockAppointment: vi.fn(async () => null),
+      rescheduleAppointment: vi.fn(async () => ({}) as Appointment),
       getBarberDailyWorkloads: vi.fn(async () => []),
     };
 

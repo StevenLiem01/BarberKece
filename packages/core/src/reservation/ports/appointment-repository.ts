@@ -45,6 +45,22 @@ export interface AppointmentRepository {
     customerId: string,
     interval: TimeInterval,
   ): Promise<Appointment[]>;
+  findActiveByBarberAndIntervalExcluding(
+    barberProfileId: string,
+    interval: TimeInterval,
+    excludeAppointmentId: string,
+  ): Promise<Appointment[]>;
+  findActiveByCustomerAndIntervalExcluding(
+    customerId: string,
+    interval: TimeInterval,
+    excludeAppointmentId: string,
+  ): Promise<Appointment[]>;
+  lockAppointment(id: string): Promise<Appointment | null>;
+  rescheduleAppointment(
+    id: string,
+    newStartsAt: Date,
+    newEndsAt: Date,
+  ): Promise<Appointment>;
   getBarberDailyWorkloads(
     barberProfileIds: string[],
     dayStart: Date,
