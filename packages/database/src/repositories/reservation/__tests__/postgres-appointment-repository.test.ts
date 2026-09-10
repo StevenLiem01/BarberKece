@@ -399,4 +399,78 @@ describe("PostgresAppointmentRepository (GiST Exclusion & Concurrency)", () => {
     expect(found.length).toBeGreaterThanOrEqual(1);
     expect(found.some((a) => a.barberProfileId === barber1Id)).toBe(true);
   });
+
+  describe("findByCustomerId", () => {
+    it("returns only requested customer's appointments in deterministic startsAt DESC order", async () => {
+      const earlierId = uuidv7();
+      const laterId = uuidv7();
+      const otherCustomerId = uuidv7();
+      testAppointmentIds.push(earlierId, laterId, otherCustomerId);
+
+      // Create earlier appointment for customer1
+      await repository.createAppointment({
+        id: earlierId,
+        bookingReference: `BK-${earlierId}`,
+        customerId: customer1Id,
+        barberProfileId: barber1Id,
+        serviceId,
+        status: AppointmentStatus.CONFIRMED,
+        startsAt: new Date("2026-10-05T09:00:00.000Z"),
+        endsAt: new Date("2026-10-05T10:00:00.000Z"),
+        serviceDurationMinutes: 60,
+        priceRupiah: 75000,
+      });
+
+      // Create later appointment for customer1
+      await repository.createAppointment({
+        id: laterId,
+        bookingReference: `BK-${laterId}`,
+        customerId: customer1Id,
+        barberProfileId: barber1Id,
+        serviceId,
+        status: AppointmentStatus.CONFIRMED,
+        startsAt: new Date("2026-10-06T09:00:00.000Z"),
+        endsAt: new Date("2026-10-06T10:00:00.000Z"),
+        serviceDurationMinutes: 60,
+        priceRupiah: 75000,
+      });
+
+      // Create appointment for customer2
+      await repository.createAppointment({
+        id: otherCustomerId,
+        bookingReference: `BK-${otherCustomerId}`,
+        customerId: customer2Id,
+        barberProfileId: barber1Id,
+        serviceId,
+        status: AppointmentStatus.CONFIRMED,
+        startsAt: new Date("2026-10-07T09:00:00.000Z"),
+        endsAt: new Date("2026-10-07T10:00:00.000Z"),
+        serviceDurationMinutes: 60,
+        priceRupiah: 75000,
+      });
+
+      const customer1Appointments =
+        await repository.findByCustomerId(customer1Id);
+
+      // Must only contain customer1 appointments
+      expect(customer1Appointments.length).toBeGreaterThanOrEqual(2);
+      expect(
+        customer1Appointments.every((a) => a.customerId === customer1Id),
+      ).toBe(true);
+      expect(customer1Appointments.some((a) => a.id === otherCustomerId)).toBe(
+        false,
+      );
+
+      // Filter to our test appointments to verify relative ordering
+      const relevant = customer1Appointments.filter(
+        (a) => a.id === earlierId || a.id === laterId,
+      );
+      expect(relevant.length).toBe(2);
+      expect(relevant[0].id).toBe(laterId);
+      expect(relevant[1].id).toBe(earlierId);
+      expect(relevant[0].startsAt.getTime()).toBeGreaterThan(
+        relevant[1].startsAt.getTime(),
+      );
+    });
+  });
 });

@@ -32,6 +32,7 @@ export interface AppointmentRepository {
   ): Promise<Appointment>;
   findById(id: string): Promise<Appointment | null>;
   findByBookingReference(reference: string): Promise<Appointment | null>;
+  findByCustomerId(customerId: string): Promise<Appointment[]>;
   updateStatus(
     id: string,
     status: AppointmentStatus,

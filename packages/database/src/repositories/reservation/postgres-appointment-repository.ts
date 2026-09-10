@@ -1,4 +1,4 @@
-import { and, eq, gt, inArray, lt, ne, sql } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, lt, ne, sql } from "drizzle-orm";
 import type { DbOrTx } from "../../client.js";
 import { appointments } from "../../schema/reservation/appointments.js";
 import {
@@ -124,6 +124,14 @@ export class PostgresAppointmentRepository implements AppointmentRepository {
       .limit(1);
 
     return found ?? null;
+  }
+
+  async findByCustomerId(customerId: string): Promise<Appointment[]> {
+    return this.db
+      .select()
+      .from(appointments)
+      .where(eq(appointments.customerId, customerId))
+      .orderBy(desc(appointments.startsAt));
   }
 
   async updateStatus(
