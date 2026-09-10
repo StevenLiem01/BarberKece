@@ -103,6 +103,7 @@ export function toAdminServiceDto(service: {
 export const GetAvailableSlotsQuerySchema = z.object({
   serviceId: z.string().uuid("Invalid service ID"),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be YYYY-MM-DD"),
+  barberProfileId: z.string().uuid("Invalid barber profile ID").optional(),
 });
 
 export type GetAvailableSlotsQuery = z.infer<

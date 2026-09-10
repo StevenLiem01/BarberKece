@@ -52,6 +52,7 @@ export async function GET(req: NextRequest) {
     const query = {
       serviceId: searchParams.get("serviceId"),
       date: searchParams.get("date"),
+      barberProfileId: searchParams.get("barberProfileId") ?? undefined,
     };
 
     const parsed = GetAvailableSlotsQuerySchema.safeParse(query);
@@ -69,10 +70,14 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const { serviceId, date } = parsed.data;
+    const { serviceId, date, barberProfileId } = parsed.data;
 
     const useCase = getUseCase();
-    const result = await useCase.execute({ serviceId, date });
+    const result = await useCase.execute({
+      serviceId,
+      date,
+      barberProfileId,
+    });
 
     // M3-05 constraint: Map explicitly to minimal DTO to strip barber details
     const mappedSlots: PublicAvailableSlotDto[] = result.slots.map((slot) => ({
@@ -87,7 +92,10 @@ export async function GET(req: NextRequest) {
     const errName = error instanceof Error ? error.name : "";
     const errMsg = error instanceof Error ? error.message : "Error";
 
-    if (errName === "ServiceNotFoundError") {
+    if (
+      errName === "ServiceNotFoundError" ||
+      errName === "BarberProfileNotFoundError"
+    ) {
       return NextResponse.json(
         {
           error: {
@@ -103,7 +111,8 @@ export async function GET(req: NextRequest) {
     if (
       errName === "InactiveServiceError" ||
       errName === "InvalidBookingDateError" ||
-      errName === "BookingHorizonExceededError"
+      errName === "BookingHorizonExceededError" ||
+      errName === "BarberNotEligibleError"
     ) {
       return NextResponse.json(
         {

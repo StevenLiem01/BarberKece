@@ -13,6 +13,9 @@ import { Service } from "../models/service.js";
 import { BarberProfile } from "../../barber/models/barber-profile.js";
 import { BusinessHours } from "../models/business-hours.js";
 import { BarberSchedule } from "../models/barber-schedule.js";
+import { ScheduleException } from "../models/schedule-exception.js";
+import { Appointment } from "../models/appointment.js";
+import { AppointmentStatus } from "../domain/appointment-status.js";
 import {
   BarberNotEligibleError,
   BookingHorizonExceededError,
@@ -519,6 +522,230 @@ describe("GetAvailableSlotsUseCase", () => {
       expect(result.slots[0].startsAt.toISOString()).toBe(
         new Date("2026-09-08T09:00:00.000+07:00").toISOString(),
       );
+    });
+  });
+
+  describe("specific barber availability semantics", () => {
+    it("omitted barberProfileId preserves ANY_AVAILABLE behavior returning union of all eligible barbers' slots", async () => {
+      const useCase = new GetAvailableSlotsUseCase(
+        mockServiceRepo as ServiceRepository,
+        mockBarberProfileRepo as BarberProfileRepository,
+        mockBarberEligibilityRepo as BarberEligibilityRepository,
+        mockScheduleRepo as ScheduleRepository,
+        mockAppointmentRepo as AppointmentRepository,
+        mockClock,
+      );
+
+      // barber-1 works 09:00-11:00 (slots 09:00..10:30)
+      // barber-2 works 10:00-12:00 (slots 10:00..11:30)
+      // ANY_AVAILABLE union should cover 09:00 to 11:30
+      const result = await useCase.execute({
+        serviceId: activeService.id,
+        date: validDate,
+      });
+
+      const slotStarts = result.slots.map((s) =>
+        s.startsAt.toISOString().substring(11, 16),
+      );
+      // starts at 09:00 and ends with 11:30 slot (in UTC: 09:00 WIB = 02:00 UTC, 11:30 WIB = 04:30 UTC)
+      expect(result.slots.length).toBe(11); // 09:00, 09:15, 09:30, 09:45, 10:00, 10:15, 10:30, 10:45, 11:00, 11:15, 11:30
+      expect(slotStarts).toContain("02:00"); // 09:00 WIB
+      expect(slotStarts).toContain("04:30"); // 11:30 WIB
+    });
+
+    it("specific barberProfileId returns only that barber's valid slots and excludes other barbers' slots", async () => {
+      const useCase = new GetAvailableSlotsUseCase(
+        mockServiceRepo as ServiceRepository,
+        mockBarberProfileRepo as BarberProfileRepository,
+        mockBarberEligibilityRepo as BarberEligibilityRepository,
+        mockScheduleRepo as ScheduleRepository,
+        mockAppointmentRepo as AppointmentRepository,
+        mockClock,
+      );
+
+      // Query specifically for barber-1 (shift: 09:00-11:00)
+      const result = await useCase.execute({
+        serviceId: activeService.id,
+        date: validDate,
+        barberProfileId: "barber-1",
+      });
+
+      const slotStarts = result.slots.map((s) =>
+        s.startsAt.toISOString().substring(11, 16),
+      );
+      // barber-1 only works until 11:00, so last 30-min slot is 10:30 (03:30 UTC)
+      expect(result.slots.length).toBe(7); // 09:00, 09:15, 09:30, 09:45, 10:00, 10:15, 10:30
+      expect(slotStarts).toContain("02:00"); // 09:00 WIB
+      expect(slotStarts).toContain("03:30"); // 10:30 WIB
+      // Slots starting at 10:45, 11:00, 11:15, 11:30 belong to barber-2 and must NOT appear
+      expect(slotStarts).not.toContain("03:45"); // 10:45 WIB
+      expect(slotStarts).not.toContain("04:00"); // 11:00 WIB
+      expect(slotStarts).not.toContain("04:30"); // 11:30 WIB
+    });
+
+    it("another barber being available does NOT make the selected barber's unavailable slot appear", async () => {
+      // barber-1 has a blocking appointment at 09:30 - 10:00
+      const blockingAppointment: Appointment = {
+        id: "appt-1",
+        bookingReference: "BK-TEST-001",
+        customerId: "cust-1",
+        barberProfileId: "barber-1",
+        serviceId: activeService.id,
+        startsAt: new Date("2026-09-08T09:30:00.000+07:00"),
+        endsAt: new Date("2026-09-08T10:00:00.000+07:00"),
+        serviceDurationMinutes: 30,
+        status: AppointmentStatus.CONFIRMED,
+        priceRupiah: 60000,
+        notes: null,
+        cancellationReason: null,
+        isAutoAssigned: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      mockAppointmentRepo = {
+        findActiveByBarberAndInterval: async (barberId: string) => {
+          if (barberId === "barber-1") return [blockingAppointment];
+          return []; // barber-2 has no blocking appointments
+        },
+      };
+
+      const useCase = new GetAvailableSlotsUseCase(
+        mockServiceRepo as ServiceRepository,
+        mockBarberProfileRepo as BarberProfileRepository,
+        mockBarberEligibilityRepo as BarberEligibilityRepository,
+        mockScheduleRepo as ScheduleRepository,
+        mockAppointmentRepo as AppointmentRepository,
+        mockClock,
+      );
+
+      const result = await useCase.execute({
+        serviceId: activeService.id,
+        date: validDate,
+        barberProfileId: "barber-1",
+      });
+
+      const slotStarts = result.slots.map((s) =>
+        s.startsAt.toISOString().substring(11, 16),
+      );
+
+      // Overlapping slots with [09:30, 10:00):
+      // 09:15 [09:15, 09:45) -> overlaps
+      // 09:30 [09:30, 10:00) -> overlaps
+      // 09:45 [09:45, 10:15) -> overlaps
+      expect(slotStarts).not.toContain("02:15"); // 09:15 WIB
+      expect(slotStarts).not.toContain("02:30"); // 09:30 WIB
+      expect(slotStarts).not.toContain("02:45"); // 09:45 WIB
+
+      // Non-overlapping slots remain: 09:00, 10:00, 10:15, 10:30
+      expect(slotStarts).toContain("02:00"); // 09:00 WIB
+      expect(slotStarts).toContain("03:00"); // 10:00 WIB
+      expect(slotStarts).toContain("03:15"); // 10:15 WIB
+      expect(slotStarts).toContain("03:30"); // 10:30 WIB
+      expect(result.slots.length).toBe(4);
+    });
+
+    it("respects specific barber schedule exceptions such as breaks or time off", async () => {
+      const scheduleBreak: ScheduleException = {
+        id: "exc-1",
+        barberProfileId: "barber-1",
+        reason: "Lunch break",
+        startsAt: new Date("2026-09-08T10:00:00.000+07:00"),
+        endsAt: new Date("2026-09-08T10:30:00.000+07:00"),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      mockScheduleRepo = {
+        getBusinessHoursForDay: async (dayOfWeek: number) => {
+          if (dayOfWeek === 2) return shopBusinessHours;
+          return null;
+        },
+        getBarberSchedulesForDay: async (barberId: string) => {
+          if (barberId === "barber-1") return [barber1Schedule];
+          return [];
+        },
+        getScheduleExceptions: async ({ barberProfileId }) => {
+          if (barberProfileId === "barber-1") return [scheduleBreak];
+          return [];
+        },
+      };
+
+      const useCase = new GetAvailableSlotsUseCase(
+        mockServiceRepo as ServiceRepository,
+        mockBarberProfileRepo as BarberProfileRepository,
+        mockBarberEligibilityRepo as BarberEligibilityRepository,
+        mockScheduleRepo as ScheduleRepository,
+        mockAppointmentRepo as AppointmentRepository,
+        mockClock,
+      );
+
+      const result = await useCase.execute({
+        serviceId: activeService.id,
+        date: validDate,
+        barberProfileId: "barber-1",
+      });
+
+      const slotStarts = result.slots.map((s) =>
+        s.startsAt.toISOString().substring(11, 16),
+      );
+
+      // Overlapping with break [10:00, 10:30):
+      // 09:45 [09:45, 10:15) -> overlaps
+      // 10:00 [10:00, 10:30) -> overlaps
+      // 10:15 [10:15, 10:45) -> overlaps
+      expect(slotStarts).not.toContain("02:45"); // 09:45 WIB
+      expect(slotStarts).not.toContain("03:00"); // 10:00 WIB
+      expect(slotStarts).not.toContain("03:15"); // 10:15 WIB
+
+      // Valid slots: 09:00, 09:15, 09:30, 10:30
+      expect(slotStarts).toContain("02:00"); // 09:00 WIB
+      expect(slotStarts).toContain("02:15"); // 09:15 WIB
+      expect(slotStarts).toContain("02:30"); // 09:30 WIB
+      expect(slotStarts).toContain("03:30"); // 10:30 WIB
+    });
+
+    it("throws BarberProfileNotFoundError when barberProfileId does not exist", async () => {
+      const useCase = new GetAvailableSlotsUseCase(
+        mockServiceRepo as ServiceRepository,
+        mockBarberProfileRepo as BarberProfileRepository,
+        mockBarberEligibilityRepo as BarberEligibilityRepository,
+        mockScheduleRepo as ScheduleRepository,
+        mockAppointmentRepo as AppointmentRepository,
+        mockClock,
+      );
+
+      await expect(
+        useCase.execute({
+          serviceId: activeService.id,
+          date: validDate,
+          barberProfileId: "nonexistent-barber",
+        }),
+      ).rejects.toThrow(BarberProfileNotFoundError);
+    });
+
+    it("throws BarberNotEligibleError when barber is not eligible for requested service", async () => {
+      mockBarberEligibilityRepo = {
+        isEligible: async () => false, // barber-1 not eligible for this service
+        findEligibleBarberProfileIds: async () => ["barber-2"],
+      };
+
+      const useCase = new GetAvailableSlotsUseCase(
+        mockServiceRepo as ServiceRepository,
+        mockBarberProfileRepo as BarberProfileRepository,
+        mockBarberEligibilityRepo as BarberEligibilityRepository,
+        mockScheduleRepo as ScheduleRepository,
+        mockAppointmentRepo as AppointmentRepository,
+        mockClock,
+      );
+
+      await expect(
+        useCase.execute({
+          serviceId: activeService.id,
+          date: validDate,
+          barberProfileId: "barber-1",
+        }),
+      ).rejects.toThrow(BarberNotEligibleError);
     });
   });
 });
