@@ -23,6 +23,10 @@ const {
 
 vi.mock("next/navigation", () => ({
   notFound: mockNotFound,
+  useRouter: () => ({
+    refresh: vi.fn(),
+    push: vi.fn(),
+  }),
 }));
 
 vi.mock("@/lib/auth", () => ({
@@ -208,5 +212,43 @@ describe("CustomerAppointmentDetailPage (/account/appointments/[id])", () => {
     expect(html).not.toContain("Jl.");
     expect(html).not.toContain("Jakarta");
     expect(html).not.toContain("Mall");
+  });
+
+  it("renders 'Batalkan Reservasi' action for CONFIRMED appointment", async () => {
+    mockRequireRole.mockResolvedValue(customerUser);
+    mockFindAppointmentById.mockResolvedValue(ownedAppointment);
+    mockFindServiceById.mockResolvedValue({
+      id: "srv-uuid-1",
+      name: "Gentlemen Classic Cut",
+    });
+    mockFindBarberById.mockResolvedValue(null);
+
+    const element = await CustomerAppointmentDetailPage({
+      params: Promise.resolve({ id: "app-uuid-111" }),
+    });
+
+    const html = renderClean(element);
+    expect(html).toContain("Batalkan Reservasi");
+  });
+
+  it("does not render 'Batalkan Reservasi' action for already cancelled or completed appointment", async () => {
+    mockRequireRole.mockResolvedValue(customerUser);
+    mockFindAppointmentById.mockResolvedValue({
+      ...ownedAppointment,
+      status: "CANCELLED_BY_CUSTOMER",
+      cancellationReason: "Sudah dibatalkan",
+    });
+    mockFindServiceById.mockResolvedValue({
+      id: "srv-uuid-1",
+      name: "Gentlemen Classic Cut",
+    });
+    mockFindBarberById.mockResolvedValue(null);
+
+    const element = await CustomerAppointmentDetailPage({
+      params: Promise.resolve({ id: "app-uuid-111" }),
+    });
+
+    const html = renderClean(element);
+    expect(html).not.toContain("Batalkan Reservasi");
   });
 });

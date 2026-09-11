@@ -26,6 +26,7 @@ import {
   formatTimeWib,
   formatDateIndonesian,
 } from "@/lib/format";
+import { AppointmentDetailActions } from "@/components/reservation/cancel-appointment-dialog";
 
 export const runtime = "nodejs";
 
@@ -223,6 +224,13 @@ export default async function CustomerAppointmentDetailPage({
             </div>
           </dl>
         </div>
+
+        {/* Action Controls (e.g. Cancel Appointment for CONFIRMED) */}
+        <AppointmentDetailActions
+          appointmentId={appointment.id}
+          bookingReference={appointment.bookingReference}
+          status={appointment.status}
+        />
       </div>
     </main>
   );
