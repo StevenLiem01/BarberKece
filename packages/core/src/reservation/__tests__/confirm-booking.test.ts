@@ -123,6 +123,7 @@ describe("ConfirmBookingUseCase", () => {
       findById: vi.fn(async () => null),
       findByBookingReference: vi.fn(async () => null),
       findByCustomerId: vi.fn(async () => []),
+      findByBarberId: vi.fn(async () => []),
       updateStatus: vi.fn(),
       findActiveByBarberAndInterval: vi.fn(async () => []),
       findActiveByCustomerAndInterval: vi.fn(async () => []),

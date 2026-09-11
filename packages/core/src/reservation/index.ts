@@ -35,3 +35,6 @@ export * from "./use-cases/cancel-appointment.js";
 export * from "./use-cases/reschedule-appointment.js";
 export * from "./use-cases/get-appointment.js";
 export * from "./use-cases/get-customer-appointments.js";
+export * from "./use-cases/get-barber-appointments.js";
+export * from "./use-cases/get-barber-appointment-detail.js";
+export * from "./use-cases/transition-appointment-status.js";

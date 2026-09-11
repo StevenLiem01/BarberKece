@@ -1,4 +1,4 @@
-import { and, desc, eq, gt, inArray, lt, ne, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, gte, inArray, lt, ne, sql } from "drizzle-orm";
 import type { DbOrTx } from "../../client.js";
 import { appointments } from "../../schema/reservation/appointments.js";
 import {
@@ -11,6 +11,7 @@ import {
   BarberWorkloadSummary,
   CreateAppointmentParams,
   CustomerBookingConflictError,
+  FindBarberAppointmentsFilter,
   SlotAlreadyBookedError,
   TimeInterval,
 } from "@barberkece/core/reservation";
@@ -132,6 +133,40 @@ export class PostgresAppointmentRepository implements AppointmentRepository {
       .from(appointments)
       .where(eq(appointments.customerId, customerId))
       .orderBy(desc(appointments.startsAt));
+  }
+
+  async findByBarberId(
+    barberProfileId: string,
+    filter?: FindBarberAppointmentsFilter,
+  ): Promise<Appointment[]> {
+    if (Array.isArray(filter?.status) && filter.status.length === 0) {
+      return [];
+    }
+
+    const conditions = [eq(appointments.barberProfileId, barberProfileId)];
+
+    if (filter?.from) {
+      conditions.push(gte(appointments.startsAt, filter.from));
+    }
+
+    if (filter?.to) {
+      conditions.push(lt(appointments.startsAt, filter.to));
+    }
+
+    if (filter?.status) {
+      const statuses = Array.isArray(filter.status)
+        ? filter.status
+        : [filter.status];
+      if (statuses.length > 0) {
+        conditions.push(inArray(appointments.status, statuses));
+      }
+    }
+
+    return this.db
+      .select()
+      .from(appointments)
+      .where(and(...conditions))
+      .orderBy(asc(appointments.startsAt), asc(appointments.id));
   }
 
   async updateStatus(

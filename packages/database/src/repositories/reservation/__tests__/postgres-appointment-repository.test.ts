@@ -473,4 +473,156 @@ describe("PostgresAppointmentRepository (GiST Exclusion & Concurrency)", () => {
       );
     });
   });
+
+  describe("findByBarberId", () => {
+    it("returns only requested barber's appointments in deterministic startsAt ASC order", async () => {
+      const earlierId = uuidv7();
+      const laterId = uuidv7();
+      const otherBarberApptId = uuidv7();
+      testAppointmentIds.push(earlierId, laterId, otherBarberApptId);
+
+      // Create earlier appointment for barber1 (2026-11-01 09:00 UTC)
+      await repository.createAppointment({
+        id: earlierId,
+        bookingReference: `BK-${earlierId}`,
+        customerId: customer1Id,
+        barberProfileId: barber1Id,
+        serviceId,
+        status: AppointmentStatus.CONFIRMED,
+        startsAt: new Date("2026-11-01T09:00:00.000Z"),
+        endsAt: new Date("2026-11-01T10:00:00.000Z"),
+        serviceDurationMinutes: 60,
+        priceRupiah: 75000,
+      });
+
+      // Create later appointment for barber1 (2026-11-01 11:00 UTC)
+      await repository.createAppointment({
+        id: laterId,
+        bookingReference: `BK-${laterId}`,
+        customerId: customer1Id,
+        barberProfileId: barber1Id,
+        serviceId,
+        status: AppointmentStatus.CONFIRMED,
+        startsAt: new Date("2026-11-01T11:00:00.000Z"),
+        endsAt: new Date("2026-11-01T12:00:00.000Z"),
+        serviceDurationMinutes: 60,
+        priceRupiah: 75000,
+      });
+
+      // Create appointment for barber2
+      await repository.createAppointment({
+        id: otherBarberApptId,
+        bookingReference: `BK-${otherBarberApptId}`,
+        customerId: customer1Id,
+        barberProfileId: barber2Id,
+        serviceId,
+        status: AppointmentStatus.CONFIRMED,
+        startsAt: new Date("2026-11-01T10:00:00.000Z"),
+        endsAt: new Date("2026-11-01T11:00:00.000Z"),
+        serviceDurationMinutes: 60,
+        priceRupiah: 75000,
+      });
+
+      const barber1Appointments = await repository.findByBarberId(barber1Id);
+
+      // Must only contain barber1 appointments
+      expect(barber1Appointments.length).toBeGreaterThanOrEqual(2);
+      expect(
+        barber1Appointments.every((a) => a.barberProfileId === barber1Id),
+      ).toBe(true);
+      expect(barber1Appointments.some((a) => a.id === otherBarberApptId)).toBe(
+        false,
+      );
+
+      // Verify relative chronological ordering (startsAt ASC)
+      const relevant = barber1Appointments.filter(
+        (a) => a.id === earlierId || a.id === laterId,
+      );
+      expect(relevant.length).toBe(2);
+      expect(relevant[0].id).toBe(earlierId);
+      expect(relevant[1].id).toBe(laterId);
+      expect(relevant[0].startsAt.getTime()).toBeLessThan(
+        relevant[1].startsAt.getTime(),
+      );
+    });
+
+    it("filters appointments by date range and status", async () => {
+      const day1ApptId = uuidv7();
+      const day2ApptId = uuidv7();
+      const day2CompletedId = uuidv7();
+      testAppointmentIds.push(day1ApptId, day2ApptId, day2CompletedId);
+
+      // Day 1: 2026-11-10 09:00 UTC
+      await repository.createAppointment({
+        id: day1ApptId,
+        bookingReference: `BK-${day1ApptId}`,
+        customerId: customer1Id,
+        barberProfileId: barber1Id,
+        serviceId,
+        status: AppointmentStatus.CONFIRMED,
+        startsAt: new Date("2026-11-10T09:00:00.000Z"),
+        endsAt: new Date("2026-11-10T10:00:00.000Z"),
+        serviceDurationMinutes: 60,
+        priceRupiah: 75000,
+      });
+
+      // Day 2: 2026-11-11 09:00 UTC (CONFIRMED)
+      await repository.createAppointment({
+        id: day2ApptId,
+        bookingReference: `BK-${day2ApptId}`,
+        customerId: customer1Id,
+        barberProfileId: barber1Id,
+        serviceId,
+        status: AppointmentStatus.CONFIRMED,
+        startsAt: new Date("2026-11-11T09:00:00.000Z"),
+        endsAt: new Date("2026-11-11T10:00:00.000Z"),
+        serviceDurationMinutes: 60,
+        priceRupiah: 75000,
+      });
+
+      // Day 2: 2026-11-11 11:00 UTC (COMPLETED)
+      await repository.createAppointment({
+        id: day2CompletedId,
+        bookingReference: `BK-${day2CompletedId}`,
+        customerId: customer1Id,
+        barberProfileId: barber1Id,
+        serviceId,
+        status: AppointmentStatus.COMPLETED,
+        startsAt: new Date("2026-11-11T11:00:00.000Z"),
+        endsAt: new Date("2026-11-11T12:00:00.000Z"),
+        serviceDurationMinutes: 60,
+        priceRupiah: 75000,
+      });
+
+      // Query Day 2 only: [2026-11-11T00:00:00Z, 2026-11-12T00:00:00Z)
+      const day2Appointments = await repository.findByBarberId(barber1Id, {
+        from: new Date("2026-11-11T00:00:00.000Z"),
+        to: new Date("2026-11-12T00:00:00.000Z"),
+      });
+
+      const day2Ids = day2Appointments.map((a) => a.id);
+      expect(day2Ids).toContain(day2ApptId);
+      expect(day2Ids).toContain(day2CompletedId);
+      expect(day2Ids).not.toContain(day1ApptId);
+
+      // Query Day 2 only with status CONFIRMED
+      const day2Confirmed = await repository.findByBarberId(barber1Id, {
+        from: new Date("2026-11-11T00:00:00.000Z"),
+        to: new Date("2026-11-12T00:00:00.000Z"),
+        status: AppointmentStatus.CONFIRMED,
+      });
+
+      const confirmedIds = day2Confirmed.map((a) => a.id);
+      expect(confirmedIds).toContain(day2ApptId);
+      expect(confirmedIds).not.toContain(day2CompletedId);
+      expect(confirmedIds).not.toContain(day1ApptId);
+    });
+
+    it("returns empty array immediately when filter status is an empty array", async () => {
+      const result = await repository.findByBarberId(barber1Id, {
+        status: [],
+      });
+      expect(result).toEqual([]);
+    });
+  });
 });

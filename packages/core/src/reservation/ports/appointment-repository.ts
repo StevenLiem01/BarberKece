@@ -23,6 +23,12 @@ export interface BarberWorkloadSummary {
   lastAutoAssignedAt: Date | null;
 }
 
+export interface FindBarberAppointmentsFilter {
+  from?: Date;
+  to?: Date;
+  status?: AppointmentStatus | AppointmentStatus[];
+}
+
 export interface AppointmentRepository {
   createAppointment(params: CreateAppointmentParams): Promise<Appointment>;
   createConfirmedAppointmentWithRetry(
@@ -33,6 +39,10 @@ export interface AppointmentRepository {
   findById(id: string): Promise<Appointment | null>;
   findByBookingReference(reference: string): Promise<Appointment | null>;
   findByCustomerId(customerId: string): Promise<Appointment[]>;
+  findByBarberId(
+    barberProfileId: string,
+    filter?: FindBarberAppointmentsFilter,
+  ): Promise<Appointment[]>;
   updateStatus(
     id: string,
     status: AppointmentStatus,

@@ -164,3 +164,21 @@ export class RescheduleCutoffExceededError extends ReservationError {
     this.name = "RescheduleCutoffExceededError";
   }
 }
+
+export class NoShowGracePeriodNotElapsedError extends ReservationError {
+  constructor(startsAt: Date, gracePeriodMinutes = 15) {
+    super(
+      `Appointment at ${startsAt.toISOString()} cannot be marked as No-Show before the grace period of ${gracePeriodMinutes} minutes has elapsed`,
+    );
+    this.name = "NoShowGracePeriodNotElapsedError";
+  }
+}
+
+export class CancellationReasonRequiredError extends ReservationError {
+  constructor(
+    message = "Cancellation reason is required when barbershop cancels an appointment",
+  ) {
+    super(message);
+    this.name = "CancellationReasonRequiredError";
+  }
+}
