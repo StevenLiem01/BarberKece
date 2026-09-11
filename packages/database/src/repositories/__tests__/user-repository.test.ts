@@ -188,30 +188,36 @@ describe("PostgresUserRepository", () => {
   });
 
   it("should correctly count users by role", async () => {
-    const email = `admin-count-${Date.now()}@example.com`;
-    const now = new Date();
-    const id = uuidv7();
+    await dbClient.db.transaction(
+      async (tx) => {
+        const txRepo = new PostgresUserRepository(tx);
+        const email = `admin-count-${Date.now()}@example.com`;
+        const now = new Date();
+        const id = uuidv7();
 
-    const initialCount = await repository.countByRole("ADMIN");
+        const initialCount = await txRepo.countByRole("ADMIN");
 
-    await repository.createUser({
-      id,
-      email,
-      passwordHash: "hash",
-      role: "ADMIN",
-      status: "ACTIVE",
-      createdAt: now,
-      updatedAt: now,
-    });
+        await txRepo.createUser({
+          id,
+          email,
+          passwordHash: "hash",
+          role: "ADMIN",
+          status: "ACTIVE",
+          createdAt: now,
+          updatedAt: now,
+        });
 
-    try {
-      const updatedCount = await repository.countByRole("ADMIN");
-      expect(updatedCount).toBe(initialCount + 1);
-    } finally {
-      await dbClient.db.delete(users).where(eq(users.id, id));
-    }
+        try {
+          const updatedCount = await txRepo.countByRole("ADMIN");
+          expect(updatedCount).toBe(initialCount + 1);
+        } finally {
+          await tx.delete(users).where(eq(users.id, id));
+        }
 
-    const finalCount = await repository.countByRole("ADMIN");
-    expect(finalCount).toBe(initialCount);
+        const finalCount = await txRepo.countByRole("ADMIN");
+        expect(finalCount).toBe(initialCount);
+      },
+      { isolationLevel: "repeatable read" },
+    );
   });
 });
