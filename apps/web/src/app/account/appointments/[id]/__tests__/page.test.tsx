@@ -214,9 +214,33 @@ describe("CustomerAppointmentDetailPage (/account/appointments/[id])", () => {
     expect(html).not.toContain("Mall");
   });
 
-  it("renders 'Batalkan Reservasi' action for CONFIRMED appointment", async () => {
+  it("renders 'Batalkan Reservasi' and 'Ubah Jadwal' actions for CONFIRMED appointment with assigned barber", async () => {
     mockRequireRole.mockResolvedValue(customerUser);
     mockFindAppointmentById.mockResolvedValue(ownedAppointment);
+    mockFindServiceById.mockResolvedValue({
+      id: "srv-uuid-1",
+      name: "Gentlemen Classic Cut",
+    });
+    mockFindBarberById.mockResolvedValue({
+      id: "barber-uuid-1",
+      specialization: "Senior Stylist",
+    });
+
+    const element = await CustomerAppointmentDetailPage({
+      params: Promise.resolve({ id: "app-uuid-111" }),
+    });
+
+    const html = renderClean(element);
+    expect(html).toContain("Batalkan Reservasi");
+    expect(html).toContain("Ubah Jadwal");
+  });
+
+  it("safely blocks and hides 'Ubah Jadwal' action when barberProfileId is unexpectedly absent", async () => {
+    mockRequireRole.mockResolvedValue(customerUser);
+    mockFindAppointmentById.mockResolvedValue({
+      ...ownedAppointment,
+      barberProfileId: null,
+    });
     mockFindServiceById.mockResolvedValue({
       id: "srv-uuid-1",
       name: "Gentlemen Classic Cut",
@@ -229,9 +253,10 @@ describe("CustomerAppointmentDetailPage (/account/appointments/[id])", () => {
 
     const html = renderClean(element);
     expect(html).toContain("Batalkan Reservasi");
+    expect(html).not.toContain("Ubah Jadwal");
   });
 
-  it("does not render 'Batalkan Reservasi' action for already cancelled or completed appointment", async () => {
+  it("does not render 'Batalkan Reservasi' or 'Ubah Jadwal' action for already cancelled or completed appointment", async () => {
     mockRequireRole.mockResolvedValue(customerUser);
     mockFindAppointmentById.mockResolvedValue({
       ...ownedAppointment,
@@ -250,5 +275,6 @@ describe("CustomerAppointmentDetailPage (/account/appointments/[id])", () => {
 
     const html = renderClean(element);
     expect(html).not.toContain("Batalkan Reservasi");
+    expect(html).not.toContain("Ubah Jadwal");
   });
 });

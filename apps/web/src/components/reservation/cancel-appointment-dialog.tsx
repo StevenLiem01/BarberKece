@@ -3,6 +3,10 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { AlertCircleIcon, XIcon, ClockIcon } from "@/components/ui/icons";
+import {
+  isRescheduleEligible,
+  RescheduleAppointmentDialog,
+} from "./reschedule-appointment-dialog";
 
 export interface CancelAppointmentDialogProps {
   isOpen: boolean;
@@ -327,6 +331,15 @@ export interface AppointmentDetailActionsProps {
   bookingReference: string;
   status: string;
   onCancellationSuccess?: () => void;
+  // Reschedule coexistence props
+  serviceId?: string;
+  serviceName?: string;
+  barberProfileId?: string | null;
+  barberName?: string;
+  currentStartsAt?: string;
+  currentEndsAt?: string;
+  serviceDurationMinutes?: number;
+  onRescheduleSuccess?: () => void;
 }
 
 export function AppointmentDetailActions({
@@ -334,13 +347,38 @@ export function AppointmentDetailActions({
   bookingReference,
   status,
   onCancellationSuccess,
+  serviceId,
+  serviceName,
+  barberProfileId,
+  barberName,
+  currentStartsAt,
+  currentEndsAt,
+  serviceDurationMinutes,
+  onRescheduleSuccess,
 }: AppointmentDetailActionsProps) {
   const router = useRouter();
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isCancelledLocally, setIsCancelledLocally] = useState(false);
+  const rescheduleButtonRef = useRef<HTMLButtonElement>(null);
+  const cancelButtonRef = useRef<HTMLButtonElement>(null);
 
-  // If status is not CONFIRMED or if already cancelled locally, do not show cancel CTA
-  if (!isCancellationEligible(status) || isCancelledLocally) {
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
+  const [isRescheduleDialogOpen, setIsRescheduleDialogOpen] = useState(false);
+  const [isCancelledLocally, setIsCancelledLocally] = useState(false);
+  const [isRescheduledLocally, setIsRescheduledLocally] = useState(false);
+
+  // Check eligibility for cancellation and rescheduling
+  const canCancel =
+    isCancellationEligible(status) &&
+    !isCancelledLocally &&
+    !isRescheduledLocally;
+  const canReschedule =
+    isRescheduleEligible(status, barberProfileId) &&
+    !isCancelledLocally &&
+    !isRescheduledLocally &&
+    Boolean(serviceId) &&
+    Boolean(currentStartsAt) &&
+    Boolean(currentEndsAt);
+
+  if (!canCancel && !canReschedule) {
     if (isCancelledLocally) {
       return (
         <div
@@ -352,13 +390,32 @@ export function AppointmentDetailActions({
         </div>
       );
     }
+    if (isRescheduledLocally) {
+      return (
+        <div
+          role="status"
+          data-testid="reschedule-success-banner"
+          className="bg-[#2F7D4A]/10 border border-[#2F7D4A]/30 rounded-2xl p-4 text-center text-xs font-bold text-[#2F7D4A] uppercase tracking-wider"
+        >
+          Jadwal kunjungan berhasil diperbarui. Memperbarui status...
+        </div>
+      );
+    }
     return null;
   }
 
-  const handleSuccess = () => {
+  const handleCancelSuccess = () => {
     setIsCancelledLocally(true);
     if (onCancellationSuccess) {
       onCancellationSuccess();
+    }
+    router.refresh();
+  };
+
+  const handleRescheduleSuccess = () => {
+    setIsRescheduledLocally(true);
+    if (onRescheduleSuccess) {
+      onRescheduleSuccess();
     }
     router.refresh();
   };
@@ -369,24 +426,66 @@ export function AppointmentDetailActions({
         data-testid="appointment-detail-actions"
         className="pt-2 flex flex-col sm:flex-row items-center justify-end gap-3"
       >
-        <button
-          type="button"
-          data-testid="cancel-appointment-button"
-          onClick={() => setIsDialogOpen(true)}
-          className="w-full sm:w-auto px-5 py-2.5 bg-[#FAF8F3] border border-[#B63D37]/40 text-[#B63D37] text-xs font-bold uppercase tracking-wider rounded-xl transition-colors hover:bg-[#B63D37]/10 hover:border-[#B63D37] focus:outline-none focus:ring-2 focus:ring-[#B63D37] shadow-xs cursor-pointer text-center"
-        >
-          Batalkan Reservasi
-        </button>
+        {canReschedule && (
+          <button
+            ref={rescheduleButtonRef}
+            type="button"
+            data-testid="reschedule-appointment-button"
+            onClick={() => setIsRescheduleDialogOpen(true)}
+            className="w-full sm:w-auto px-5 py-2.5 bg-[#11110F] text-[#FAF8F3] text-xs font-bold uppercase tracking-wider rounded-xl transition-colors hover:bg-[#22231F] focus:outline-none focus:ring-2 focus:ring-[#C9F23B] shadow-xs cursor-pointer text-center"
+          >
+            Ubah Jadwal
+          </button>
+        )}
+        {canCancel && (
+          <button
+            ref={cancelButtonRef}
+            type="button"
+            data-testid="cancel-appointment-button"
+            onClick={() => setIsCancelDialogOpen(true)}
+            className="w-full sm:w-auto px-5 py-2.5 bg-[#FAF8F3] border border-[#B63D37]/40 text-[#B63D37] text-xs font-bold uppercase tracking-wider rounded-xl transition-colors hover:bg-[#B63D37]/10 hover:border-[#B63D37] focus:outline-none focus:ring-2 focus:ring-[#B63D37] shadow-xs cursor-pointer text-center"
+          >
+            Batalkan Reservasi
+          </button>
+        )}
       </div>
 
-      <CancelAppointmentDialog
-        isOpen={isDialogOpen}
-        onClose={() => setIsDialogOpen(false)}
-        appointmentId={appointmentId}
-        bookingReference={bookingReference}
-        onSuccess={handleSuccess}
-        onStaleStatus={() => router.refresh()}
-      />
+      {canCancel && (
+        <CancelAppointmentDialog
+          isOpen={isCancelDialogOpen}
+          onClose={() => {
+            setIsCancelDialogOpen(false);
+            cancelButtonRef.current?.focus();
+          }}
+          appointmentId={appointmentId}
+          bookingReference={bookingReference}
+          onSuccess={handleCancelSuccess}
+          onStaleStatus={() => router.refresh()}
+        />
+      )}
+
+      {canReschedule &&
+        serviceId &&
+        barberProfileId &&
+        currentStartsAt &&
+        currentEndsAt && (
+          <RescheduleAppointmentDialog
+            isOpen={isRescheduleDialogOpen}
+            onClose={() => setIsRescheduleDialogOpen(false)}
+            appointmentId={appointmentId}
+            bookingReference={bookingReference}
+            serviceId={serviceId}
+            serviceName={serviceName ?? "Layanan Potong Rambut"}
+            barberProfileId={barberProfileId}
+            barberName={barberName ?? "Barber Staff"}
+            currentStartsAt={currentStartsAt}
+            currentEndsAt={currentEndsAt}
+            serviceDurationMinutes={serviceDurationMinutes ?? 45}
+            triggerRef={rescheduleButtonRef}
+            onSuccess={handleRescheduleSuccess}
+            onStaleStatus={() => router.refresh()}
+          />
+        )}
     </>
   );
 }

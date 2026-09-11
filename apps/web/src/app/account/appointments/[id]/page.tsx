@@ -225,11 +225,18 @@ export default async function CustomerAppointmentDetailPage({
           </dl>
         </div>
 
-        {/* Action Controls (e.g. Cancel Appointment for CONFIRMED) */}
+        {/* Action Controls (Reschedule & Cancel for CONFIRMED) */}
         <AppointmentDetailActions
           appointmentId={appointment.id}
           bookingReference={appointment.bookingReference}
           status={appointment.status}
+          serviceId={appointment.serviceId}
+          serviceName={serviceName}
+          barberProfileId={appointment.barberProfileId}
+          barberName={barberLabel}
+          currentStartsAt={appointment.startsAt.toISOString()}
+          currentEndsAt={appointment.endsAt.toISOString()}
+          serviceDurationMinutes={appointment.serviceDurationMinutes}
         />
       </div>
     </main>
