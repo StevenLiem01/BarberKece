@@ -1,4 +1,7 @@
-import { BarberAppointmentDto } from "@barberkece/contracts";
+import {
+  BarberAppointmentDto,
+  BarberOperationalTargetStatus,
+} from "@barberkece/contracts";
 
 /**
  * Returns today's date in Asia/Jakarta timezone formatted as YYYY-MM-DD.
@@ -120,6 +123,51 @@ export function deriveSpotlightAppointment(
 
 export type OperationalAction =
   "CHECK_IN" | "START_SERVICE" | "COMPLETE" | "NO_SHOW" | "CANCEL";
+
+/**
+ * Returns allowed canonical target statuses for operational mutations.
+ * CONFIRMED: CHECKED_IN, NO_SHOW, CANCELLED_BY_BARBERSHOP
+ * CHECKED_IN: IN_SERVICE, CANCELLED_BY_BARBERSHOP
+ * IN_SERVICE: COMPLETED
+ * Terminal statuses: no mutation action
+ */
+export function getAllowedTargetStatuses(
+  status: string,
+): BarberOperationalTargetStatus[] {
+  switch (status) {
+    case "CONFIRMED":
+      return ["CHECKED_IN", "NO_SHOW", "CANCELLED_BY_BARBERSHOP"];
+    case "CHECKED_IN":
+      return ["IN_SERVICE", "CANCELLED_BY_BARBERSHOP"];
+    case "IN_SERVICE":
+      return ["COMPLETED"];
+    default:
+      return [];
+  }
+}
+
+/**
+ * Converts a YYYY-MM-DD date string to the ISO UTC string representing
+ * 00:00:00.000 in Asia/Jakarta timezone (UTC+7).
+ */
+export function jakartaDayStartToIso(dateStr: string): string {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  if (!year || !month || !day) return "";
+  const utcMs = Date.UTC(year, month - 1, day, 0, 0, 0, 0) - 7 * 3600 * 1000;
+  return new Date(utcMs).toISOString();
+}
+
+/**
+ * Converts a YYYY-MM-DD date string to the ISO UTC string representing
+ * 23:59:59.999 in Asia/Jakarta timezone (UTC+7).
+ */
+export function jakartaDayEndToIso(dateStr: string): string {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  if (!year || !month || !day) return "";
+  const utcMs =
+    Date.UTC(year, month - 1, day, 23, 59, 59, 999) - 7 * 3600 * 1000;
+  return new Date(utcMs).toISOString();
+}
 
 /**
  * Returns allowed operational actions for a given status.

@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { BarberAppointmentDto } from "@barberkece/contracts";
 import { Badge } from "@/components/ui/badge";
 import { ClockIcon, ScissorsIcon, InfoIcon } from "@/components/ui/icons";
@@ -52,12 +53,17 @@ export function BarberTimelineItem({
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs">
           <div className="flex items-center gap-2">
             <span className="text-[#6E6C65]">Ref:</span>
-            <span
-              data-testid="item-booking-reference"
-              className="font-mono font-black tracking-wider text-[#11110F]"
+            <Link
+              href={`/barber/appointments/${appointment.id}`}
+              className="hover:underline focus:outline-none focus:ring-1 focus:ring-[#C9F23B] rounded"
             >
-              #{appointment.bookingReference}
-            </span>
+              <span
+                data-testid="item-booking-reference"
+                className="font-mono font-black tracking-wider text-[#11110F]"
+              >
+                #{appointment.bookingReference}
+              </span>
+            </Link>
           </div>
           <div className="flex items-center gap-2 text-[#6E6C65]">
             <ScissorsIcon size={14} className="shrink-0" aria-hidden="true" />

@@ -7,6 +7,9 @@ import {
   isTerminalStatus,
   deriveSpotlightAppointment,
   getAllowedOperationalActions,
+  getAllowedTargetStatuses,
+  jakartaDayStartToIso,
+  jakartaDayEndToIso,
   mapTransitionErrorMessage,
 } from "../barber-workspace-helpers";
 
@@ -268,6 +271,50 @@ describe("barber-workspace-helpers", () => {
           "Cancellation reason is required when barbershop cancels an appointment",
       });
       expect(msg).toContain("Alasan pembatalan wajib diisi");
+    });
+  });
+
+  describe("getAllowedTargetStatuses", () => {
+    it("returns correct target statuses for CONFIRMED", () => {
+      expect(getAllowedTargetStatuses("CONFIRMED")).toEqual([
+        "CHECKED_IN",
+        "NO_SHOW",
+        "CANCELLED_BY_BARBERSHOP",
+      ]);
+    });
+
+    it("returns correct target statuses for CHECKED_IN", () => {
+      expect(getAllowedTargetStatuses("CHECKED_IN")).toEqual([
+        "IN_SERVICE",
+        "CANCELLED_BY_BARBERSHOP",
+      ]);
+    });
+
+    it("returns correct target statuses for IN_SERVICE", () => {
+      expect(getAllowedTargetStatuses("IN_SERVICE")).toEqual(["COMPLETED"]);
+    });
+
+    it("returns empty array for terminal statuses", () => {
+      expect(getAllowedTargetStatuses("COMPLETED")).toEqual([]);
+      expect(getAllowedTargetStatuses("CANCELLED_BY_CUSTOMER")).toEqual([]);
+      expect(getAllowedTargetStatuses("CANCELLED_BY_BARBERSHOP")).toEqual([]);
+      expect(getAllowedTargetStatuses("NO_SHOW")).toEqual([]);
+      expect(getAllowedTargetStatuses("UNKNOWN")).toEqual([]);
+    });
+  });
+
+  describe("jakartaDayStartToIso and jakartaDayEndToIso", () => {
+    it("converts YYYY-MM-DD to exact Asia/Jakarta calendar day boundaries in UTC ISO", () => {
+      const start = jakartaDayStartToIso("2026-09-12");
+      const end = jakartaDayEndToIso("2026-09-12");
+
+      expect(start).toBe("2026-09-11T17:00:00.000Z");
+      expect(end).toBe("2026-09-12T16:59:59.999Z");
+    });
+
+    it("returns empty string for invalid date format", () => {
+      expect(jakartaDayStartToIso("invalid")).toBe("");
+      expect(jakartaDayEndToIso("invalid")).toBe("");
     });
   });
 });

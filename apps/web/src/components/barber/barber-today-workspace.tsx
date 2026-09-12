@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import Link from "next/link";
 import { BarberAppointmentDto } from "@barberkece/contracts";
 import { CalendarIcon, AlertCircleIcon, XIcon } from "@/components/ui/icons";
 import { LogoutButton } from "@/components/auth/logout-button";
@@ -310,7 +311,13 @@ export function BarberTodayWorkspace({
             </h1>
           </div>
 
-          <div className="flex items-center gap-3 self-start sm:self-auto">
+          <div className="flex items-center gap-3 self-start sm:self-auto flex-wrap">
+            <Link
+              href="/barber/appointments"
+              className="px-3.5 py-2 text-xs font-bold uppercase tracking-wider text-[#11110F] bg-[#FAF8F3] border border-[#D8D4CA] rounded-xl transition-colors hover:bg-[#F3F0E8] hover:border-[#11110F] focus:outline-none focus:ring-2 focus:ring-[#C9F23B]"
+            >
+              Semua Janji Temu
+            </Link>
             <button
               type="button"
               onClick={() => fetchAppointments()}
