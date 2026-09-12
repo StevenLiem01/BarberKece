@@ -177,3 +177,155 @@ export function toAppointmentDto(appointment: {
     updatedAt: appointment.updatedAt.toISOString(),
   };
 }
+
+export const BarberAppointmentStatusFilterSchema = z.enum([
+  "CONFIRMED",
+  "CHECKED_IN",
+  "IN_SERVICE",
+  "COMPLETED",
+  "CANCELLED_BY_CUSTOMER",
+  "CANCELLED_BY_BARBERSHOP",
+  "NO_SHOW",
+]);
+
+export const GetBarberAppointmentsQuerySchema = z
+  .object({
+    date: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be YYYY-MM-DD")
+      .optional(),
+    from: z.string().datetime("from must be a valid ISO datetime").optional(),
+    to: z.string().datetime("to must be a valid ISO datetime").optional(),
+    status: z
+      .union([
+        BarberAppointmentStatusFilterSchema,
+        z.array(BarberAppointmentStatusFilterSchema),
+      ])
+      .optional(),
+  })
+  .refine(
+    (data) => {
+      if (data.date && (data.from !== undefined || data.to !== undefined)) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: "Cannot specify both date and explicit from/to range",
+      path: ["date"],
+    },
+  )
+  .refine(
+    (data) => {
+      if (data.from && data.to) {
+        return new Date(data.from).getTime() < new Date(data.to).getTime();
+      }
+      return true;
+    },
+    {
+      message: "from must be before to",
+      path: ["from"],
+    },
+  );
+
+export type GetBarberAppointmentsQuery = z.infer<
+  typeof GetBarberAppointmentsQuerySchema
+>;
+
+export const AppointmentIdParamSchema = z
+  .string()
+  .uuid("Invalid appointment ID");
+
+export const BarberOperationalTargetStatusSchema = z.enum([
+  "CHECKED_IN",
+  "IN_SERVICE",
+  "COMPLETED",
+  "NO_SHOW",
+  "CANCELLED_BY_BARBERSHOP",
+]);
+
+export type BarberOperationalTargetStatus = z.infer<
+  typeof BarberOperationalTargetStatusSchema
+>;
+
+export const TransitionAppointmentStatusSchema = z
+  .object({
+    targetStatus: BarberOperationalTargetStatusSchema,
+    cancellationReason: z
+      .string()
+      .trim()
+      .max(500, "Reason too long")
+      .optional()
+      .nullable(),
+  })
+  .refine(
+    (data) => {
+      if (data.targetStatus === "CANCELLED_BY_BARBERSHOP") {
+        return (
+          typeof data.cancellationReason === "string" &&
+          data.cancellationReason.trim().length > 0
+        );
+      }
+      return true;
+    },
+    {
+      message:
+        "Cancellation reason is required when barbershop cancels an appointment",
+      path: ["cancellationReason"],
+    },
+  );
+
+export type TransitionAppointmentStatusRequest = z.infer<
+  typeof TransitionAppointmentStatusSchema
+>;
+
+export interface BarberAppointmentDto {
+  id: string;
+  bookingReference: string;
+  customerId: string;
+  barberProfileId: string;
+  serviceId: string;
+  status: string;
+  startsAt: string;
+  endsAt: string;
+  serviceDurationMinutes: number;
+  priceRupiah: number;
+  notes: string | null;
+  cancellationReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export function toBarberAppointmentDto(appointment: {
+  id: string;
+  bookingReference: string;
+  customerId: string;
+  barberProfileId: string;
+  serviceId: string;
+  status: string;
+  startsAt: Date;
+  endsAt: Date;
+  serviceDurationMinutes: number;
+  priceRupiah: number;
+  notes: string | null;
+  cancellationReason: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}): BarberAppointmentDto {
+  return {
+    id: appointment.id,
+    bookingReference: appointment.bookingReference,
+    customerId: appointment.customerId,
+    barberProfileId: appointment.barberProfileId,
+    serviceId: appointment.serviceId,
+    status: appointment.status,
+    startsAt: appointment.startsAt.toISOString(),
+    endsAt: appointment.endsAt.toISOString(),
+    serviceDurationMinutes: appointment.serviceDurationMinutes,
+    priceRupiah: appointment.priceRupiah,
+    notes: appointment.notes,
+    cancellationReason: appointment.cancellationReason,
+    createdAt: appointment.createdAt.toISOString(),
+    updatedAt: appointment.updatedAt.toISOString(),
+  };
+}

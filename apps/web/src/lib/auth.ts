@@ -5,9 +5,11 @@ import {
   UserRole,
   ResolveAuthenticatedUserUseCase,
 } from "@barberkece/core/identity";
+import { BarberProfile } from "@barberkece/core/barber";
 import {
   PostgresUserRepository,
   PostgresSessionRepository,
+  PostgresBarberProfileRepository,
 } from "@barberkece/database/repositories";
 import { NodeCryptoTokenAdapter } from "@barberkece/infrastructure/identity";
 import { getDatabaseClient } from "@/lib/db";
@@ -204,4 +206,75 @@ export async function authenticateCustomerApi(
   }
 
   return { user };
+}
+
+export type BarberAuthResult =
+  | { user: User; barberProfile: BarberProfile; response?: never }
+  | {
+      user?: never;
+      barberProfile?: never;
+      response: import("next/server").NextResponse;
+    };
+
+/**
+ * Validates that the request has an active session with role BARBER and resolves
+ * the corresponding authoritative BarberProfile for API route handlers.
+ * Returns either { user, barberProfile } or { response: NextResponse } with standardized 401 or 403 JSON payload.
+ */
+export async function authenticateBarberApi(
+  requestId: string,
+): Promise<BarberAuthResult> {
+  const user = await getAuthenticatedUser();
+  if (!user) {
+    return {
+      response: (await import("next/server")).NextResponse.json(
+        {
+          error: {
+            code: "UNAUTHORIZED",
+            message: "Authentication required",
+            requestId,
+          },
+        },
+        { status: 401 },
+      ),
+    };
+  }
+
+  if (user.role !== "BARBER") {
+    return {
+      response: (await import("next/server")).NextResponse.json(
+        {
+          error: {
+            code: "FORBIDDEN",
+            message: "Barber role required",
+            requestId,
+          },
+        },
+        { status: 403 },
+      ),
+    };
+  }
+
+  const dbClient = getDatabaseClient();
+  const barberProfileRepository = new PostgresBarberProfileRepository(
+    dbClient.db,
+  );
+  const barberProfile = await barberProfileRepository.findByUserId(user.id);
+
+  if (!barberProfile) {
+    return {
+      response: (await import("next/server")).NextResponse.json(
+        {
+          error: {
+            code: "FORBIDDEN",
+            message: "Barber profile not found",
+            requestId,
+          },
+        },
+        { status: 403 },
+      ),
+    };
+  }
+
+  return { user, barberProfile };
 }
