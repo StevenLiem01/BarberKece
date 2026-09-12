@@ -304,17 +304,58 @@ describe("barber-workspace-helpers", () => {
   });
 
   describe("jakartaDayStartToIso and jakartaDayEndToIso", () => {
-    it("converts YYYY-MM-DD to exact Asia/Jakarta calendar day boundaries in UTC ISO", () => {
+    it("converts YYYY-MM-DD to exact Asia/Jakarta calendar day boundaries in UTC ISO (normal day)", () => {
       const start = jakartaDayStartToIso("2026-09-12");
       const end = jakartaDayEndToIso("2026-09-12");
 
+      // Jakarta 2026-09-12 00:00:00.000 is 2026-09-11 17:00:00.000Z
       expect(start).toBe("2026-09-11T17:00:00.000Z");
-      expect(end).toBe("2026-09-12T16:59:59.999Z");
+      // Jakarta 2026-09-13 00:00:00.000 (exclusive next-day boundary) is 2026-09-12 17:00:00.000Z
+      expect(end).toBe("2026-09-12T17:00:00.000Z");
+
+      // Range semantics: startsAt >= from AND startsAt < to
+      // An appointment at 2026-09-12 23:59:59.999 WIB (2026-09-12T16:59:59.999Z) is strictly within [from, to)
+      const lateAppointmentMs = new Date("2026-09-12T16:59:59.999Z").getTime();
+      expect(lateAppointmentMs).toBeGreaterThanOrEqual(
+        new Date(start).getTime(),
+      );
+      expect(lateAppointmentMs).toBeLessThan(new Date(end).getTime());
+    });
+
+    it("handles month rollover correctly (e.g. September 30 -> October 1)", () => {
+      const end = jakartaDayEndToIso("2026-09-30");
+      // Jakarta 2026-10-01 00:00:00.000 is 2026-09-30 17:00:00.000Z
+      expect(end).toBe("2026-09-30T17:00:00.000Z");
+    });
+
+    it("handles year rollover correctly (e.g. December 31 -> January 1)", () => {
+      const end = jakartaDayEndToIso("2026-12-31");
+      // Jakarta 2027-01-01 00:00:00.000 is 2026-12-31 17:00:00.000Z
+      expect(end).toBe("2026-12-31T17:00:00.000Z");
+    });
+
+    it("handles leap-year rollover correctly", () => {
+      // Leap year 2024: Feb 28 -> Feb 29
+      const endFeb28 = jakartaDayEndToIso("2024-02-28");
+      // Jakarta 2024-02-29 00:00:00.000 is 2024-02-28 17:00:00.000Z
+      expect(endFeb28).toBe("2024-02-28T17:00:00.000Z");
+
+      // Leap year 2024: Feb 29 -> March 1
+      const endFeb29 = jakartaDayEndToIso("2024-02-29");
+      // Jakarta 2024-03-01 00:00:00.000 is 2024-02-29 17:00:00.000Z
+      expect(endFeb29).toBe("2024-02-29T17:00:00.000Z");
+
+      // Non-leap year 2026: Feb 28 -> March 1
+      const endNonLeap = jakartaDayEndToIso("2026-02-28");
+      // Jakarta 2026-03-01 00:00:00.000 is 2026-02-28 17:00:00.000Z
+      expect(endNonLeap).toBe("2026-02-28T17:00:00.000Z");
     });
 
     it("returns empty string for invalid date format", () => {
       expect(jakartaDayStartToIso("invalid")).toBe("");
       expect(jakartaDayEndToIso("invalid")).toBe("");
+      expect(jakartaDayStartToIso("")).toBe("");
+      expect(jakartaDayEndToIso("")).toBe("");
     });
   });
 });

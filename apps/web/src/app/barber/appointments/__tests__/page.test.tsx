@@ -274,13 +274,20 @@ describe("BarberAppointmentsPage & BarberAppointmentsHub (/barber/appointments)"
 
     // 2026-09-12 00:00:00 WIB is 2026-09-11 17:00:00.000Z
     expect(startIso).toBe("2026-09-11T17:00:00.000Z");
-    // 2026-09-12 23:59:59.999 WIB is 2026-09-12 16:59:59.999Z
-    expect(endIso).toBe("2026-09-12T16:59:59.999Z");
+    // 2026-09-13 00:00:00.000 WIB (exclusive next-day boundary) is 2026-09-12 17:00:00.000Z
+    expect(endIso).toBe("2026-09-12T17:00:00.000Z");
 
     // start < end
     expect(new Date(startIso).getTime()).toBeLessThan(
       new Date(endIso).getTime(),
     );
+
+    // Range semantics: startsAt >= from AND startsAt < to
+    const lateAppointmentMs = new Date("2026-09-12T16:59:59.999Z").getTime();
+    expect(lateAppointmentMs).toBeGreaterThanOrEqual(
+      new Date(startIso).getTime(),
+    );
+    expect(lateAppointmentMs).toBeLessThan(new Date(endIso).getTime());
   });
 
   it("shows results count truthfully", () => {

@@ -158,14 +158,17 @@ export function jakartaDayStartToIso(dateStr: string): string {
 }
 
 /**
- * Converts a YYYY-MM-DD date string to the ISO UTC string representing
- * 23:59:59.999 in Asia/Jakarta timezone (UTC+7).
+ * Converts an inclusive end date (YYYY-MM-DD) to the exclusive ISO UTC string
+ * representing 00:00:00.000 of the NEXT Asia/Jakarta calendar day (UTC+7).
+ *
+ * Backend range filters use half-open intervals: startsAt >= from AND startsAt < to.
+ * For an inclusive date range through YYYY-MM-DD, `to` must be the start of the next day.
  */
 export function jakartaDayEndToIso(dateStr: string): string {
   const [year, month, day] = dateStr.split("-").map(Number);
   if (!year || !month || !day) return "";
   const utcMs =
-    Date.UTC(year, month - 1, day, 23, 59, 59, 999) - 7 * 3600 * 1000;
+    Date.UTC(year, month - 1, day + 1, 0, 0, 0, 0) - 7 * 3600 * 1000;
   return new Date(utcMs).toISOString();
 }
 
