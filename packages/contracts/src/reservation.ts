@@ -329,3 +329,45 @@ export function toBarberAppointmentDto(appointment: {
     updatedAt: appointment.updatedAt.toISOString(),
   };
 }
+
+export interface BarberScheduleViewerDto {
+  id: string;
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+}
+
+export function toBarberScheduleViewerDto(schedule: {
+  id: string;
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+}): BarberScheduleViewerDto {
+  return {
+    id: schedule.id,
+    dayOfWeek: schedule.dayOfWeek,
+    startTime: schedule.startTime,
+    endTime: schedule.endTime,
+  };
+}
+
+export interface ScheduleExceptionDto {
+  id: string;
+  reason: string;
+  startsAt: string;
+  endsAt: string;
+}
+
+export function toScheduleExceptionDto(exception: {
+  id: string;
+  reason: string;
+  startsAt: Date;
+  endsAt: Date;
+}): ScheduleExceptionDto {
+  return {
+    id: exception.id,
+    reason: exception.reason,
+    startsAt: exception.startsAt.toISOString(),
+    endsAt: exception.endsAt.toISOString(),
+  };
+}

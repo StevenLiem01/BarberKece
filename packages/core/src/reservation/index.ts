@@ -38,3 +38,4 @@ export * from "./use-cases/get-customer-appointments.js";
 export * from "./use-cases/get-barber-appointments.js";
 export * from "./use-cases/get-barber-appointment-detail.js";
 export * from "./use-cases/transition-appointment-status.js";
+export * from "./use-cases/get-barber-schedule-viewer.js";

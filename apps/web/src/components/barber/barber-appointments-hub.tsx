@@ -196,13 +196,19 @@ export function BarberAppointmentsHub({
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <Link
             href="/barber"
             className="inline-flex items-center gap-2 px-4 py-2 bg-[#FAF8F3] text-[#11110F] text-xs font-bold uppercase tracking-wider border border-[#D8D4CA] rounded-xl hover:border-[#11110F] hover:bg-[#F3F0E8] transition-colors focus:outline-none focus:ring-2 focus:ring-[#C9F23B]"
           >
             <ArrowLeftIcon size={16} aria-hidden="true" />
             <span>Workspace Hari Ini</span>
+          </Link>
+          <Link
+            href="/barber/schedule"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-[#FAF8F3] text-[#11110F] text-xs font-bold uppercase tracking-wider border border-[#D8D4CA] rounded-xl hover:border-[#11110F] hover:bg-[#F3F0E8] transition-colors focus:outline-none focus:ring-2 focus:ring-[#C9F23B]"
+          >
+            <span>Jadwal Saya</span>
           </Link>
         </div>
       </div>

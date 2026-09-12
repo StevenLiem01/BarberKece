@@ -318,6 +318,12 @@ export function BarberTodayWorkspace({
             >
               Semua Janji Temu
             </Link>
+            <Link
+              href="/barber/schedule"
+              className="px-3.5 py-2 text-xs font-bold uppercase tracking-wider text-[#11110F] bg-[#FAF8F3] border border-[#D8D4CA] rounded-xl transition-colors hover:bg-[#F3F0E8] hover:border-[#11110F] focus:outline-none focus:ring-2 focus:ring-[#C9F23B]"
+            >
+              Jadwal Saya
+            </Link>
             <button
               type="button"
               onClick={() => fetchAppointments()}
