@@ -12,3 +12,5 @@ export * from "./reservation/barber_schedules.js";
 export * from "./reservation/schedule_exceptions.js";
 export * from "./reservation/appointments.js";
 export * from "./reservation/idempotency_records.js";
+
+export * from "./recommendation/hairstyle_knowledge.js";

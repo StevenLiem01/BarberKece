@@ -19,6 +19,10 @@
     "./barber": {
       "types": "./dist/barber/index.d.ts",
       "default": "./dist/barber/index.js"
+    },
+    "./recommendation": {
+      "types": "./dist/recommendation/index.d.ts",
+      "default": "./dist/recommendation/index.js"
     }
   },
   "scripts": {
