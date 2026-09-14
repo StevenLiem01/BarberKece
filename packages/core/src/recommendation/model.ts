@@ -1,17 +1,37 @@
-export type FaceShape =
-  | "Oval"
-  | "Round"
-  | "Square"
-  | "Oblong / Rectangle"
-  | "Heart"
-  | "Diamond"
-  | "Triangle";
-export type HairType = "Straight" | "Wavy" | "Curly" | "Coily";
-export type HairDensity =
-  "Thin / Low Density" | "Medium" | "Thick / High Density";
-export type HairLength = "Very Short" | "Short" | "Medium" | "Long";
-export type MaintenanceLevel = "Very Low" | "Low" | "Medium" | "High";
-export type StylingDifficulty = "Low" | "Medium" | "High";
+export const FACE_SHAPES = [
+  "Oval",
+  "Round",
+  "Square",
+  "Oblong / Rectangle",
+  "Heart",
+  "Diamond",
+  "Triangle",
+] as const;
+export type FaceShape = (typeof FACE_SHAPES)[number];
+
+export const HAIR_TYPES = ["Straight", "Wavy", "Curly", "Coily"] as const;
+export type HairType = (typeof HAIR_TYPES)[number];
+
+export const HAIR_DENSITIES = [
+  "Thin / Low Density",
+  "Medium",
+  "Thick / High Density",
+] as const;
+export type HairDensity = (typeof HAIR_DENSITIES)[number];
+
+export const HAIR_LENGTHS = ["Very Short", "Short", "Medium", "Long"] as const;
+export type HairLength = (typeof HAIR_LENGTHS)[number];
+
+export const MAINTENANCE_LEVELS = [
+  "Very Low",
+  "Low",
+  "Medium",
+  "High",
+] as const;
+export type MaintenanceLevel = (typeof MAINTENANCE_LEVELS)[number];
+
+export const STYLING_DIFFICULTIES = ["Low", "Medium", "High"] as const;
+export type StylingDifficulty = (typeof STYLING_DIFFICULTIES)[number];
 
 export type CompatibilityScore = 0.0 | 0.5 | 0.75 | 1.0;
 
