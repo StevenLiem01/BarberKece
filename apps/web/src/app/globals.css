@@ -1,1 +1,26 @@
 @import "tailwindcss";
+
+@theme {
+  --color-bk-canvas: #f3f0e8;
+  --color-bk-lime: #c9f23b;
+  --color-bk-ink: #11110f;
+
+  --font-barlow: "Barlow Condensed", sans-serif;
+  --font-inter: "Inter", sans-serif;
+}
+
+body {
+  background-color: var(--color-bk-canvas);
+  color: var(--color-bk-ink);
+  font-family: var(--font-inter);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-barlow);
+  text-transform: uppercase;
+}
