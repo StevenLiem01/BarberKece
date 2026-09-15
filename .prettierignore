@@ -8,5 +8,6 @@ test-results
 *.tsbuildinfo
 next-env.d.ts
 pnpm-lock.yaml
+apps/web/public/models/wasm/**
 docs/**
 AGENTS.md
