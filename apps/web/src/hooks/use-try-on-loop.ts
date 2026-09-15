@@ -14,6 +14,7 @@ interface UseTryOnLoopProps {
   isActive: boolean;
   dummyAsset: HTMLImageElement | null;
   calibration: AssetCalibration;
+  onTrackingStatusChange?: (status: "detected" | "lost") => void;
 }
 
 export function useTryOnLoop({
@@ -23,8 +24,10 @@ export function useTryOnLoop({
   isActive,
   dummyAsset,
   calibration,
+  onTrackingStatusChange,
 }: UseTryOnLoopProps) {
   const rafId = useRef<number | null>(null);
+  const wasFaceDetected = useRef<boolean>(false);
 
   useEffect(() => {
     if (
@@ -75,8 +78,18 @@ export function useTryOnLoop({
 
         // Run tracking
         const result = tracker.detectForVideo(video, timestamp);
-        if (result && result.landmarks) {
-          const pose = extractPose(result.landmarks, MEDIA_PIPE_LANDMARK_MAP);
+        const landmarks = result?.landmarks;
+        const hasFace = !!(landmarks && landmarks.length > 0);
+
+        if (hasFace !== wasFaceDetected.current) {
+          wasFaceDetected.current = hasFace;
+          if (onTrackingStatusChange) {
+            onTrackingStatusChange(hasFace ? "detected" : "lost");
+          }
+        }
+
+        if (hasFace && landmarks) {
+          const pose = extractPose(landmarks, MEDIA_PIPE_LANDMARK_MAP);
 
           if (pose) {
             // Since we mirrored the video drawing, we need to apply mirroring to the pose anchor
@@ -113,5 +126,13 @@ export function useTryOnLoop({
         rafId.current = null;
       }
     };
-  }, [isActive, tracker, videoRef, canvasRef, dummyAsset, calibration]);
+  }, [
+    isActive,
+    tracker,
+    videoRef,
+    canvasRef,
+    dummyAsset,
+    calibration,
+    onTrackingStatusChange,
+  ]);
 }
