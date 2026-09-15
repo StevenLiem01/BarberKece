@@ -23,6 +23,10 @@
     "./recommendation": {
       "types": "./dist/recommendation/index.d.ts",
       "default": "./dist/recommendation/index.js"
+    },
+    "./try-on": {
+      "types": "./dist/try-on/index.d.ts",
+      "default": "./dist/try-on/index.js"
     }
   },
   "scripts": {
