@@ -51,13 +51,15 @@ test.describe("Auth UI & Forms", () => {
     await expect(
       page.getByRole("heading", { name: "Create an account" }),
     ).toBeVisible();
+    await expect(page.getByLabel("Nama")).toBeVisible();
     await expect(page.getByLabel("Email")).toBeVisible();
     await expect(page.getByLabel("Password")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Sign up" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Daftar" })).toBeVisible();
 
     // Trigger validation
     await page.getByLabel("Password").fill("short");
-    await page.getByRole("button", { name: "Sign up" }).click();
+    await page.getByRole("button", { name: "Daftar" }).click();
+    await expect(page.getByText("Nama tidak boleh kosong")).toBeVisible();
     await expect(page.getByText("Invalid email format")).toBeVisible();
     await expect(
       page.getByText("Password must be at least 8 characters long"),
@@ -109,7 +111,11 @@ test.describe("Auth UI & Forms", () => {
     const uniqueEmail = `test-logout-${Date.now()}@example.com`;
 
     const res = await request.post("/api/v1/auth/register", {
-      data: { email: uniqueEmail, password: "password123" },
+      data: {
+        displayName: "Test User",
+        email: uniqueEmail,
+        password: "password123",
+      },
       headers: {
         Origin: "http://localhost:3000",
       },

@@ -19,6 +19,7 @@ test.describe("M1 Auth Journeys", () => {
 
     // 1. Register via UI
     await page.goto("/sign-up");
+    await page.fill("#displayName", "Test Customer");
     await page.fill("#email", email);
     await page.fill("#password", password);
     await page.click('button[type="submit"]');
