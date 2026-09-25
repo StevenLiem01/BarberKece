@@ -172,7 +172,11 @@ describe("Admin Barber Name Recovery UI (/admin/barbers)", () => {
 
     it("renders statistics summary reflecting total and unnamed barbers count", () => {
       const barbers = [
-        makeBarber({ id: "b1", displayName: "Barber Satu", missingDisplayName: false }),
+        makeBarber({
+          id: "b1",
+          displayName: "Barber Satu",
+          missingDisplayName: false,
+        }),
         makeBarber({ id: "b2", displayName: null, missingDisplayName: true }),
       ];
 
@@ -243,9 +247,9 @@ describe("Admin Barber Name Recovery UI (/admin/barbers)", () => {
       });
 
       // Submit with empty input
-      const saveButton = Array.from(
-        container.querySelectorAll("button"),
-      ).find((b) => b.textContent?.includes("Simpan Nama"))!;
+      const saveButton = Array.from(container.querySelectorAll("button")).find(
+        (b) => b.textContent?.includes("Simpan Nama"),
+      )!;
 
       await act(async () => {
         saveButton.click();
@@ -301,9 +305,9 @@ describe("Admin Barber Name Recovery UI (/admin/barbers)", () => {
       });
 
       // Click save
-      const saveButton = Array.from(
-        container.querySelectorAll("button"),
-      ).find((b) => b.textContent?.includes("Simpan Nama"))!;
+      const saveButton = Array.from(container.querySelectorAll("button")).find(
+        (b) => b.textContent?.includes("Simpan Nama"),
+      )!;
 
       await act(async () => {
         saveButton.click();
@@ -371,9 +375,9 @@ describe("Admin Barber Name Recovery UI (/admin/barbers)", () => {
       });
 
       // Click save
-      const saveButton = Array.from(
-        container.querySelectorAll("button"),
-      ).find((b) => b.textContent?.includes("Simpan Nama"))!;
+      const saveButton = Array.from(container.querySelectorAll("button")).find(
+        (b) => b.textContent?.includes("Simpan Nama"),
+      )!;
 
       await act(async () => {
         saveButton.click();

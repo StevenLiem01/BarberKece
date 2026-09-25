@@ -6,11 +6,7 @@ import {
   PostgresStaffInvitationRepository,
   PostgresStaffInvitationTransactionRunner,
 } from "../index.js";
-import {
-  staffInvitations,
-  users,
-  barberProfiles,
-} from "../../schema/index.js";
+import { staffInvitations, users, barberProfiles } from "../../schema/index.js";
 import {
   CreateStaffInvitationUseCase,
   AcceptStaffInvitationUseCase,
@@ -426,33 +422,40 @@ describe("PostgreSQL Staff Invitation Flow & Concurrency (F-05A)", () => {
 
     // Simulate an aborted acceptance transaction by throwing inside runner.run
     await expect(
-      runner.run(async ({ userRepository, staffInvitationRepository, barberProfileRepository }) => {
-        const inv = await staffInvitationRepository.findAndLockByTokenHash(tokenHash);
-        expect(inv).not.toBeNull();
+      runner.run(
+        async ({
+          userRepository,
+          staffInvitationRepository,
+          barberProfileRepository,
+        }) => {
+          const inv =
+            await staffInvitationRepository.findAndLockByTokenHash(tokenHash);
+          expect(inv).not.toBeNull();
 
-        await userRepository.createUser({
-          id: intendedUserId,
-          email,
-          displayName,
-          passwordHash: "dummyhash",
-          role: "BARBER",
-          status: "ACTIVE",
-          emailVerifiedAt: now,
-          createdAt: now,
-          updatedAt: now,
-        });
+          await userRepository.createUser({
+            id: intendedUserId,
+            email,
+            displayName,
+            passwordHash: "dummyhash",
+            role: "BARBER",
+            status: "ACTIVE",
+            emailVerifiedAt: now,
+            createdAt: now,
+            updatedAt: now,
+          });
 
-        await barberProfileRepository.provisionProfile({
-          id: uuidv7(),
-          userId: intendedUserId,
-          specialization: null,
-        });
+          await barberProfileRepository.provisionProfile({
+            id: uuidv7(),
+            userId: intendedUserId,
+            specialization: null,
+          });
 
-        await staffInvitationRepository.consumeInvitation(inv!.id, now);
+          await staffInvitationRepository.consumeInvitation(inv!.id, now);
 
-        // Simulated unexpected failure right before commit
-        throw new Error("Simulated failure inside transaction");
-      }),
+          // Simulated unexpected failure right before commit
+          throw new Error("Simulated failure inside transaction");
+        },
+      ),
     ).rejects.toThrow("Simulated failure inside transaction");
 
     // Verify full rollback: user was NOT created

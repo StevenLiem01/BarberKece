@@ -150,10 +150,7 @@ export async function PATCH(
     }
 
     // BarberProfileNotFoundError surfaces as a generic message with 404
-    if (
-      error instanceof Error &&
-      error.message.includes("not found")
-    ) {
+    if (error instanceof Error && error.message.includes("not found")) {
       return NextResponse.json(
         {
           error: {

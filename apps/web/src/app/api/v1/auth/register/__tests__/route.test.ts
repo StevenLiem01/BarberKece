@@ -261,7 +261,11 @@ describe("POST /api/v1/auth/register", () => {
       });
 
       const req = createRequest(
-        { displayName: "Test User", email: "test@example.com", password: "password123" },
+        {
+          displayName: "Test User",
+          email: "test@example.com",
+          password: "password123",
+        },
         {
           origin: "http://localhost:3000",
           host: "localhost:3000",
@@ -283,7 +287,11 @@ describe("POST /api/v1/auth/register", () => {
       });
 
       const req = createRequest(
-        { displayName: "Test User", email: "test@example.com", password: "password123" },
+        {
+          displayName: "Test User",
+          email: "test@example.com",
+          password: "password123",
+        },
         {
           referer: "http://localhost:3000/register",
           host: "localhost:3000",
@@ -305,7 +313,11 @@ describe("POST /api/v1/auth/register", () => {
       });
 
       const req = createRequest(
-        { displayName: "Test User", email: "test@example.com", password: "password123" },
+        {
+          displayName: "Test User",
+          email: "test@example.com",
+          password: "password123",
+        },
         {
           origin: "http://localhost:3000",
           referer: "https://evil.com/attacker",

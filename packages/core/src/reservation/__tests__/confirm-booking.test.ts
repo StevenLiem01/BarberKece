@@ -465,7 +465,9 @@ describe("ConfirmBookingUseCase", () => {
     const useCase = createUseCase();
     // Two eligible barbers: barber-1 is unnamed, barber-2 is named
     (
-      mockEligibilityRepo.findEligibleBarberProfileIds as ReturnType<typeof vi.fn>
+      mockEligibilityRepo.findEligibleBarberProfileIds as ReturnType<
+        typeof vi.fn
+      >
     ).mockResolvedValueOnce(["barber-1", "barber-2"]);
 
     (

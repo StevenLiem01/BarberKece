@@ -37,7 +37,9 @@ describe("PostgresHairProfileRepository", () => {
     if (safeDb?.isVerified) {
       await safeDb.safeCleanup(async () => {
         if (createdUserIds.length > 0) {
-          await dbClient.db.delete(users).where(inArray(users.id, createdUserIds));
+          await dbClient.db
+            .delete(users)
+            .where(inArray(users.id, createdUserIds));
         }
       });
       await safeDb.close();

@@ -12,7 +12,9 @@ import { createSafeTestDatabaseContext } from "./test-database-guard.js";
  * - Verifies connected database is strictly 'barberkece_test' before applying any migration
  * - Never touches DATABASE_URL or development/production databases
  */
-export async function runTestDatabaseMigrations(): Promise<{ migrationsFolder: string }> {
+export async function runTestDatabaseMigrations(): Promise<{
+  migrationsFolder: string;
+}> {
   const safeDb = await createSafeTestDatabaseContext();
   try {
     const currentDir = dirname(fileURLToPath(import.meta.url));

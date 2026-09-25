@@ -81,9 +81,7 @@ export class BarberNotEligibleError extends ReservationError {
 
 export class BarberNotAvailableForBookingError extends ReservationError {
   constructor(barberProfileId: string) {
-    super(
-      `Barber ${barberProfileId} is not available for booking`,
-    );
+    super(`Barber ${barberProfileId} is not available for booking`);
     this.name = "BarberNotAvailableForBookingError";
   }
 }

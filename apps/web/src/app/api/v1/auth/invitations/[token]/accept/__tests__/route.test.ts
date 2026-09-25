@@ -150,11 +150,9 @@ describe("POST /api/v1/auth/invitations/[token]/accept", () => {
   });
 
   it("should return 400 on empty token param", async () => {
-    const req = createJsonRequest(
-      "/api/v1/auth/invitations//accept",
-      "POST",
-      { password: "StrongPassword123!" },
-    );
+    const req = createJsonRequest("/api/v1/auth/invitations//accept", "POST", {
+      password: "StrongPassword123!",
+    });
 
     const res = await POST(req, { params: Promise.resolve({ token: "" }) });
     expect(res.status).toBe(400);

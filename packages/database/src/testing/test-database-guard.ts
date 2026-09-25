@@ -116,9 +116,9 @@ export function validateTestDatabaseUrl(rawUrl?: string): ValidatedTestDbUrl {
  * Verifies that the connected database is strictly 'barberkece_test' on a local server.
  * Must be executed before any migration, test setup, or mutation.
  */
-export async function verifyConnectedServer(
-  db: { execute: (query: SQLWrapper | string) => Promise<unknown> },
-): Promise<ServerIdentityCheckResult> {
+export async function verifyConnectedServer(db: {
+  execute: (query: SQLWrapper | string) => Promise<unknown>;
+}): Promise<ServerIdentityCheckResult> {
   const identityQuery = sql`
     SELECT current_database() AS current_database,
            inet_server_addr()::text AS server_addr,
@@ -155,7 +155,11 @@ export async function verifyConnectedServer(
   }
 
   const serverAddr = identityRow.server_addr;
-  if (serverAddr !== null && serverAddr !== undefined && !isLocalHost(serverAddr)) {
+  if (
+    serverAddr !== null &&
+    serverAddr !== undefined &&
+    !isLocalHost(serverAddr)
+  ) {
     throw new TestDatabaseSafetyError(
       `SAFETY ABORT: Connected server IP address '${serverAddr}' is not a local loopback address. Connection must be to local PostgreSQL instance.`,
     );

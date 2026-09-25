@@ -66,13 +66,19 @@ describe("AdminBarberInviteForm", () => {
       expect(resEmpty.isValid).toBe(false);
       expect(resEmpty.errors.email).toContain("wajib diisi");
 
-      const resInvalid = validateBarberInviteInput("Budi Santoso", "not-an-email");
+      const resInvalid = validateBarberInviteInput(
+        "Budi Santoso",
+        "not-an-email",
+      );
       expect(resInvalid.isValid).toBe(false);
       expect(resInvalid.errors.email).toContain("Format email tidak valid");
     });
 
     it("accepts valid trimmed display name and normalized email", () => {
-      const res = validateBarberInviteInput("  Budi Santoso  ", "  BUDI@EXAMPLE.COM  ");
+      const res = validateBarberInviteInput(
+        "  Budi Santoso  ",
+        "  BUDI@EXAMPLE.COM  ",
+      );
       expect(res.isValid).toBe(true);
       expect(res.errors).toEqual({});
       expect(res.cleanData.displayName).toBe("Budi Santoso");
@@ -121,7 +127,9 @@ describe("AdminBarberInviteForm", () => {
 
       const alerts = container.querySelectorAll('p[role="alert"]');
       expect(alerts.length).toBe(2);
-      expect(container.textContent).toContain("Nama lengkap barber wajib diisi");
+      expect(container.textContent).toContain(
+        "Nama lengkap barber wajib diisi",
+      );
       expect(container.textContent).toContain("Email barber wajib diisi");
     });
 
@@ -199,9 +207,9 @@ describe("AdminBarberInviteForm", () => {
 
       // Form is hidden and "Undang Barber Lain" button is available
       expect(container.querySelector("form")).toBeNull();
-      const anotherBtn = Array.from(
-        container.querySelectorAll("button"),
-      ).find((b) => b.textContent?.includes("Undang Barber Lain"));
+      const anotherBtn = Array.from(container.querySelectorAll("button")).find(
+        (b) => b.textContent?.includes("Undang Barber Lain"),
+      );
       expect(anotherBtn).not.toBeUndefined();
 
       // Click "Undang Barber Lain" resets to fresh form
@@ -372,8 +380,12 @@ describe("AdminBarberInviteForm", () => {
         '[data-testid="invite-error-alert"]',
       );
       expect(errorAlert).not.toBeNull();
-      expect(errorAlert?.textContent).toContain("Gagal mengirim undangan email");
-      expect(errorAlert?.textContent).toContain("Undangan mungkin belum terkirim");
+      expect(errorAlert?.textContent).toContain(
+        "Gagal mengirim undangan email",
+      );
+      expect(errorAlert?.textContent).toContain(
+        "Undangan mungkin belum terkirim",
+      );
       expect(errorAlert?.textContent).toContain("Silakan coba lagi");
 
       // No false success claim

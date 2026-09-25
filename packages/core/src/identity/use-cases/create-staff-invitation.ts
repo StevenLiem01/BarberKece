@@ -80,8 +80,7 @@ export class CreateStaffInvitationUseCase {
         );
 
         // 5b. Verify no active or existing user with this email under lock
-        const existingUser =
-          await userRepository.findByEmail(normalizedEmail);
+        const existingUser = await userRepository.findByEmail(normalizedEmail);
         if (existingUser) {
           throw new UserAlreadyExistsError(
             "User with this email already exists",

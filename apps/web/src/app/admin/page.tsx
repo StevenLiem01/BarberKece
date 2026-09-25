@@ -7,7 +7,9 @@ export default function AdminPage() {
     <main className="p-8 max-w-4xl mx-auto space-y-6">
       <div className="flex items-center justify-between border-b border-neutral-200 pb-4">
         <div>
-          <h1 className="text-3xl font-extrabold text-neutral-950">Dashboard Admin</h1>
+          <h1 className="text-3xl font-extrabold text-neutral-950">
+            Dashboard Admin
+          </h1>
           <p className="text-sm text-neutral-600 mt-1">
             Pusat kendali dan administrasi operasional BarberKece.
           </p>
@@ -31,7 +33,9 @@ export default function AdminPage() {
               <ChevronRight className="w-5 h-5 text-neutral-400 group-hover:text-neutral-900 transition-colors" />
             </div>
             <p className="text-xs text-neutral-600 mt-1.5 leading-relaxed">
-              Periksa daftar staf barber, identifikasi barber yang belum memiliki nama, dan pulihkan akun agar dapat dipilih pada layanan booking publik.
+              Periksa daftar staf barber, identifikasi barber yang belum
+              memiliki nama, dan pulihkan akun agar dapat dipilih pada layanan
+              booking publik.
             </p>
           </div>
         </Link>

@@ -5,9 +5,7 @@ import {
   UserAlreadyExistsError,
   IdentityError,
 } from "@barberkece/core/identity";
-import {
-  PostgresStaffInvitationTransactionRunner,
-} from "@barberkece/database/repositories";
+import { PostgresStaffInvitationTransactionRunner } from "@barberkece/database/repositories";
 import { NodeCryptoTokenAdapter } from "@barberkece/infrastructure/identity";
 import { ConsoleEmailAdapter } from "@barberkece/infrastructure/email";
 import { generateRequestId, logger } from "@barberkece/infrastructure/logging";

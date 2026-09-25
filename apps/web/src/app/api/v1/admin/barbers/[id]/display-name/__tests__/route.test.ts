@@ -2,13 +2,15 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 import { PATCH } from "../route";
 
-const { mockUpdateDisplayNameExecute, mockGetBarberProfileExecute } = vi.hoisted(() => ({
-  mockUpdateDisplayNameExecute: vi.fn(),
-  mockGetBarberProfileExecute: vi.fn(),
-}));
+const { mockUpdateDisplayNameExecute, mockGetBarberProfileExecute } =
+  vi.hoisted(() => ({
+    mockUpdateDisplayNameExecute: vi.fn(),
+    mockGetBarberProfileExecute: vi.fn(),
+  }));
 
 vi.mock("@barberkece/core/identity", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@barberkece/core/identity")>();
+  const actual =
+    await importOriginal<typeof import("@barberkece/core/identity")>();
   return {
     ...actual,
     UpdateUserDisplayNameUseCase: class {
@@ -18,7 +20,8 @@ vi.mock("@barberkece/core/identity", async (importOriginal) => {
 });
 
 vi.mock("@barberkece/core/barber", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@barberkece/core/barber")>();
+  const actual =
+    await importOriginal<typeof import("@barberkece/core/barber")>();
   return {
     ...actual,
     GetBarberProfileUseCase: class {
@@ -116,7 +119,10 @@ describe("PATCH /api/v1/admin/barbers/[id]/display-name", () => {
 
   it("should return 400 on malformed JSON body", async () => {
     const req = new NextRequest(
-      new URL(`/api/v1/admin/barbers/${barberId}/display-name`, "http://localhost:3000"),
+      new URL(
+        `/api/v1/admin/barbers/${barberId}/display-name`,
+        "http://localhost:3000",
+      ),
       {
         method: "PATCH",
         headers: new Headers({

@@ -129,7 +129,9 @@ export function AdminBarbersRecovery({
         setBarbers(result.data ?? []);
       } catch {
         if (!ignore) {
-          setFetchError("Terjadi kesalahan jaringan saat memuat daftar barber.");
+          setFetchError(
+            "Terjadi kesalahan jaringan saat memuat daftar barber.",
+          );
         }
       } finally {
         if (!ignore) {
@@ -367,8 +369,8 @@ export function AdminBarbersRecovery({
             Belum Ada Data Staf Barber
           </h3>
           <p className="text-sm text-neutral-500 max-w-sm mx-auto">
-            Tidak ditemukan profil barber di dalam sistem saat ini. Undangan staf
-            baru dapat dikirimkan melalui menu undangan staf.
+            Tidak ditemukan profil barber di dalam sistem saat ini. Undangan
+            staf baru dapat dikirimkan melalui menu undangan staf.
           </p>
         </div>
       )}

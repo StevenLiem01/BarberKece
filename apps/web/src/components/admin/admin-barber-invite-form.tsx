@@ -1,7 +1,13 @@
 "use client";
 
 import React, { useState } from "react";
-import { UserPlus, CheckCircle, AlertTriangle, Send, RefreshCw } from "lucide-react";
+import {
+  UserPlus,
+  CheckCircle,
+  AlertTriangle,
+  Send,
+  RefreshCw,
+} from "lucide-react";
 
 export interface InviteBarberValidationResult {
   isValid: boolean;
@@ -25,10 +31,12 @@ export function validateBarberInviteInput(
   if (!cleanName) {
     errors.displayName = "Nama lengkap barber wajib diisi.";
   } else if (cleanName.length > 100) {
-    errors.displayName = "Nama lengkap barber tidak boleh melebihi 100 karakter.";
+    errors.displayName =
+      "Nama lengkap barber tidak boleh melebihi 100 karakter.";
   }
 
-  const cleanEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
+  const cleanEmail =
+    typeof email === "string" ? email.trim().toLowerCase() : "";
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!cleanEmail) {
     errors.email = "Email barber wajib diisi.";
@@ -56,7 +64,9 @@ export interface AdminBarberInviteFormProps {
   }) => void;
 }
 
-export function AdminBarberInviteForm({ onSuccess }: AdminBarberInviteFormProps) {
+export function AdminBarberInviteForm({
+  onSuccess,
+}: AdminBarberInviteFormProps) {
   const [displayName, setDisplayName] = useState<string>("");
   const [email, setEmail] = useState<string>("");
   const [validationErrors, setValidationErrors] = useState<{
@@ -157,7 +167,8 @@ export function AdminBarberInviteForm({ onSuccess }: AdminBarberInviteFormProps)
             Undang Barber Baru
           </h2>
           <p className="text-xs text-neutral-600 mt-0.5">
-            Kirim undangan resmi ke staf barber melalui email untuk bergabung dengan BarberKece.
+            Kirim undangan resmi ke staf barber melalui email untuk bergabung
+            dengan BarberKece.
           </p>
         </div>
       </div>
@@ -187,9 +198,10 @@ export function AdminBarberInviteForm({ onSuccess }: AdminBarberInviteFormProps)
               <div className="mt-2 p-2.5 bg-white/80 rounded-lg border border-emerald-200/80 text-xs text-emerald-900 space-y-1">
                 <p className="font-semibold">Perhatian Penting:</p>
                 <p>
-                  Akun barber belum aktif dan belum muncul di daftar barber aktif.
-                  Staf barber wajib membuka email tersebut dan menyetujui undangan untuk
-                  membuat kata sandi sebelum akun resmi dibuat di sistem.
+                  Akun barber belum aktif dan belum muncul di daftar barber
+                  aktif. Staf barber wajib membuka email tersebut dan menyetujui
+                  undangan untuk membuat kata sandi sebelum akun resmi dibuat di
+                  sistem.
                 </p>
               </div>
             </div>
@@ -240,7 +252,10 @@ export function AdminBarberInviteForm({ onSuccess }: AdminBarberInviteFormProps)
                 onChange={(e) => {
                   setDisplayName(e.target.value);
                   if (validationErrors.displayName) {
-                    setValidationErrors((prev) => ({ ...prev, displayName: undefined }));
+                    setValidationErrors((prev) => ({
+                      ...prev,
+                      displayName: undefined,
+                    }));
                   }
                 }}
                 disabled={isSubmitting}
@@ -283,7 +298,10 @@ export function AdminBarberInviteForm({ onSuccess }: AdminBarberInviteFormProps)
                 onChange={(e) => {
                   setEmail(e.target.value);
                   if (validationErrors.email) {
-                    setValidationErrors((prev) => ({ ...prev, email: undefined }));
+                    setValidationErrors((prev) => ({
+                      ...prev,
+                      email: undefined,
+                    }));
                   }
                 }}
                 disabled={isSubmitting}
@@ -313,7 +331,8 @@ export function AdminBarberInviteForm({ onSuccess }: AdminBarberInviteFormProps)
 
           <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-neutral-100">
             <p className="text-xs text-neutral-500">
-              Undangan berlaku selama 48 jam. Barber baru akan dibuat setelah staf menyetujui email.
+              Undangan berlaku selama 48 jam. Barber baru akan dibuat setelah
+              staf menyetujui email.
             </p>
             <button
               type="submit"

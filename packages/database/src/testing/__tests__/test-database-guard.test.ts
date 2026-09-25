@@ -12,7 +12,8 @@ import {
 describe("Test Database Safety Guard", () => {
   describe("redactConnectionUrl", () => {
     it("redacts credentials from connection URLs", () => {
-      const url = "postgres://myuser:secretpassword@localhost:5432/barberkece_test";
+      const url =
+        "postgres://myuser:secretpassword@localhost:5432/barberkece_test";
       const redacted = redactConnectionUrl(url);
       expect(redacted).not.toContain("secretpassword");
       expect(redacted).not.toContain("myuser");
@@ -79,7 +80,8 @@ describe("Test Database Safety Guard", () => {
     });
 
     it("rejects remote or non-loopback hostnames", () => {
-      const remoteUrl = "postgres://user:pass@db.mycompany.com:5432/barberkece_test";
+      const remoteUrl =
+        "postgres://user:pass@db.mycompany.com:5432/barberkece_test";
       expect(() => validateTestDatabaseUrl(remoteUrl)).toThrowError(
         TestDatabaseSafetyError,
       );
@@ -87,7 +89,8 @@ describe("Test Database Safety Guard", () => {
         /not a local loopback address/,
       );
 
-      const privateIpUrl = "postgres://user:pass@192.168.1.50:5432/barberkece_test";
+      const privateIpUrl =
+        "postgres://user:pass@192.168.1.50:5432/barberkece_test";
       expect(() => validateTestDatabaseUrl(privateIpUrl)).toThrowError(
         TestDatabaseSafetyError,
       );
@@ -267,7 +270,9 @@ describe("Test Database Safety Guard", () => {
         close: vi.fn(),
         safeCleanup: async (cleanupFn) => {
           if (!mockContext.isVerified) {
-            throw new TestDatabaseSafetyError("Refusing to execute test cleanup.");
+            throw new TestDatabaseSafetyError(
+              "Refusing to execute test cleanup.",
+            );
           }
           await cleanupFn();
         },

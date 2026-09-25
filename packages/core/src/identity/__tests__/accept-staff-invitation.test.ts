@@ -233,8 +233,11 @@ describe("AcceptStaffInvitationUseCase", () => {
     );
 
     // 3. emailVerifiedAt matches the acceptance timestamp passed to consumeInvitation
-    const userCreateCall = vi.mocked(mockUserRepository.createUser).mock.calls[0][0];
-    const consumeCall = vi.mocked(mockStaffInvitationRepository.consumeInvitation).mock.calls[0];
+    const userCreateCall = vi.mocked(mockUserRepository.createUser).mock
+      .calls[0][0];
+    const consumeCall = vi.mocked(
+      mockStaffInvitationRepository.consumeInvitation,
+    ).mock.calls[0];
     expect(userCreateCall.emailVerifiedAt).toBeInstanceOf(Date);
     expect(userCreateCall.emailVerifiedAt).toEqual(consumeCall[1]);
 
@@ -303,8 +306,11 @@ describe("AcceptStaffInvitationUseCase", () => {
       }),
     );
 
-    const userCreateCall = vi.mocked(mockUserRepository.createUser).mock.calls[0][0];
-    const consumeCall = vi.mocked(mockStaffInvitationRepository.consumeInvitation).mock.calls[0];
+    const userCreateCall = vi.mocked(mockUserRepository.createUser).mock
+      .calls[0][0];
+    const consumeCall = vi.mocked(
+      mockStaffInvitationRepository.consumeInvitation,
+    ).mock.calls[0];
     expect(userCreateCall.emailVerifiedAt).toBeInstanceOf(Date);
     expect(userCreateCall.emailVerifiedAt).toEqual(consumeCall[1]);
 

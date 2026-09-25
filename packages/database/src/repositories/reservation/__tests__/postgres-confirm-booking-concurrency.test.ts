@@ -204,7 +204,9 @@ describe("PostgreSQL Confirm Booking Concurrency & Invariants", () => {
             .where(inArray(services.id, cleanupServices));
         }
         if (cleanupUsers.length > 0) {
-          await dbClient.db.delete(users).where(inArray(users.id, cleanupUsers));
+          await dbClient.db
+            .delete(users)
+            .where(inArray(users.id, cleanupUsers));
         }
       });
       await safeDb.close();

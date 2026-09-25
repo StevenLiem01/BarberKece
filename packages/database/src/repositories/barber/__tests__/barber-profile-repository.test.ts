@@ -28,7 +28,9 @@ describe("PostgresBarberProfileRepository", () => {
     if (safeDb?.isVerified) {
       await safeDb.safeCleanup(async () => {
         for (const id of testProfileIds) {
-          await dbClient.db.delete(barberProfiles).where(eq(barberProfiles.id, id));
+          await dbClient.db
+            .delete(barberProfiles)
+            .where(eq(barberProfiles.id, id));
         }
         for (const id of testUserIds) {
           await dbClient.db.delete(users).where(eq(users.id, id));

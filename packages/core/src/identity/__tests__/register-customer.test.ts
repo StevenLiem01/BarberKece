@@ -207,7 +207,9 @@ describe("RegisterCustomerUseCase", () => {
       passwordRaw: "password123",
     });
 
-    const createCall = vi.mocked(mockUserRepository.createUser).mock.calls.at(-1)?.[0];
+    const createCall = vi
+      .mocked(mockUserRepository.createUser)
+      .mock.calls.at(-1)?.[0];
     expect(createCall?.emailVerifiedAt).toBeUndefined();
     expect(user.emailVerifiedAt).toBeNull();
   });

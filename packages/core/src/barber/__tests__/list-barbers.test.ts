@@ -66,10 +66,7 @@ describe("ListBarbersUseCase", () => {
   });
 
   it("returns all barbers when all are named", async () => {
-    const profiles = [
-      makeProfile("p1", "Rizal"),
-      makeProfile("p2", "Fajar"),
-    ];
+    const profiles = [makeProfile("p1", "Rizal"), makeProfile("p2", "Fajar")];
     vi.mocked(mockRepo.findAll).mockResolvedValueOnce(profiles);
     const result = await useCase.execute();
     expect(result).toHaveLength(2);
