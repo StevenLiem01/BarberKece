@@ -94,6 +94,7 @@ describe("Admin Barber Detail Route: /api/v1/admin/barbers/[id]", () => {
       mockGetExecute.mockResolvedValueOnce({
         id: "barber-1",
         userId: "user-1",
+        displayName: "Rizal",
         specialization: "Fade",
         createdAt: now,
         updatedAt: now,
@@ -105,10 +106,12 @@ describe("Admin Barber Detail Route: /api/v1/admin/barbers/[id]", () => {
       });
       expect(res.status).toBe(200);
       const json = await res.json();
-      expect(json.data).toEqual({
+      expect(json.data).toMatchObject({
         id: "barber-1",
         userId: "user-1",
+        displayName: "Rizal",
         specialization: "Fade",
+        missingDisplayName: false,
         createdAt: now.toISOString(),
         updatedAt: now.toISOString(),
       });

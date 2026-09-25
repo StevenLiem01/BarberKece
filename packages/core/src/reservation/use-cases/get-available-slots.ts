@@ -14,6 +14,7 @@ import {
   addCalendarDaysToDateString,
 } from "../domain/date-utils.js";
 import {
+  BarberNotAvailableForBookingError,
   BarberNotEligibleError,
   BookingHorizonExceededError,
   InactiveServiceError,
@@ -108,6 +109,9 @@ export class GetAvailableSlotsUseCase {
       if (!barber) {
         throw new BarberProfileNotFoundError(input.barberProfileId);
       }
+      if (!barber.displayName || barber.displayName.trim().length === 0) {
+        throw new BarberNotAvailableForBookingError(input.barberProfileId);
+      }
 
       const isEligible = await this.barberEligibilityRepository.isEligible(
         barber.id,
@@ -119,10 +123,20 @@ export class GetAvailableSlotsUseCase {
 
       candidateBarberIds = [barber.id];
     } else {
-      candidateBarberIds =
+      const rawCandidateIds =
         await this.barberEligibilityRepository.findEligibleBarberProfileIds(
           service.id,
         );
+      candidateBarberIds = [];
+      for (const id of rawCandidateIds) {
+        const candidateBarber = await this.barberProfileRepository.findById(id);
+        if (
+          candidateBarber?.displayName &&
+          candidateBarber.displayName.trim().length > 0
+        ) {
+          candidateBarberIds.push(id);
+        }
+      }
       if (candidateBarberIds.length === 0) {
         return { date: input.date, slots: [] };
       }

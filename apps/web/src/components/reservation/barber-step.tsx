@@ -155,11 +155,13 @@ export function BarberStep({
                         </div>
                         <div>
                           <h3 className="text-sm font-bold text-[#11110F]">
-                            {barber.specialization ?? "Barber Profesional"}
+                            {barber.displayName}
                           </h3>
-                          <p className="text-[11px] text-[#6E6C65]">
-                            ID: {barber.id.slice(0, 8)}
-                          </p>
+                          {barber.specialization && (
+                            <p className="text-[11px] text-[#6E6C65]">
+                              {barber.specialization}
+                            </p>
+                          )}
                         </div>
                       </div>
                       {isSelected && (

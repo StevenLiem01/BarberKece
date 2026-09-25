@@ -96,6 +96,7 @@ export async function POST(req: NextRequest) {
     const result = await useCase.execute({
       email: parsed.data.email,
       passwordRaw: parsed.data.password,
+      displayName: parsed.data.displayName,
     });
 
     return NextResponse.json({ data: result }, { status: 201 });

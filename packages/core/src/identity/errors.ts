@@ -27,3 +27,38 @@ export class AuthenticationError extends IdentityError {
     this.name = "AuthenticationError";
   }
 }
+
+export class UserAlreadyExistsError extends IdentityError {
+  constructor(message: string = "User with this email already exists") {
+    super(message);
+    this.name = "UserAlreadyExistsError";
+  }
+}
+
+export class StaffInvitationError extends IdentityError {
+  constructor(message: string) {
+    super(message);
+    this.name = "StaffInvitationError";
+  }
+}
+
+export class InvalidStaffInvitationError extends StaffInvitationError {
+  constructor(message: string = "Invalid or non-existent staff invitation") {
+    super(message);
+    this.name = "InvalidStaffInvitationError";
+  }
+}
+
+export class StaffInvitationExpiredError extends StaffInvitationError {
+  constructor(message: string = "Staff invitation has expired") {
+    super(message);
+    this.name = "StaffInvitationExpiredError";
+  }
+}
+
+export class StaffInvitationAlreadyUsedError extends StaffInvitationError {
+  constructor(message: string = "Staff invitation has already been used") {
+    super(message);
+    this.name = "StaffInvitationAlreadyUsedError";
+  }
+}

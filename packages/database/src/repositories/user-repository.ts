@@ -21,15 +21,18 @@ export class PostgresUserRepository implements UserRepository {
         .values({
           id: params.id,
           email: params.email,
+          displayName: params.displayName ?? null,
           passwordHash: params.passwordHash,
           role: params.role,
           status: params.status,
+          emailVerifiedAt: params.emailVerifiedAt ?? null,
           createdAt: params.createdAt,
           updatedAt: params.updatedAt,
         })
         .returning({
           id: users.id,
           email: users.email,
+          displayName: users.displayName,
           role: users.role,
           status: users.status,
           emailVerifiedAt: users.emailVerifiedAt,
@@ -45,6 +48,7 @@ export class PostgresUserRepository implements UserRepository {
       return {
         id: inserted.id,
         email: inserted.email,
+        displayName: inserted.displayName,
         role: inserted.role as UserRole,
         status: inserted.status as UserStatus,
         emailVerifiedAt: inserted.emailVerifiedAt,
@@ -82,6 +86,7 @@ export class PostgresUserRepository implements UserRepository {
       return {
         id: user.id,
         email: user.email,
+        displayName: user.displayName,
         passwordHash: user.passwordHash,
         role: user.role as UserRole,
         status: user.status as UserStatus,
@@ -111,6 +116,7 @@ export class PostgresUserRepository implements UserRepository {
       return {
         id: user.id,
         email: user.email,
+        displayName: user.displayName,
         role: user.role as UserRole,
         status: user.status as UserStatus,
         emailVerifiedAt: user.emailVerifiedAt,
@@ -154,6 +160,50 @@ export class PostgresUserRepository implements UserRepository {
         throw error;
       }
       throw new IdentityError("Database error during password update");
+    }
+  }
+
+  async updateDisplayName(userId: string, displayName: string): Promise<User> {
+    try {
+      const [updated] = await this.db
+        .update(users)
+        .set({
+          displayName,
+          updatedAt: new Date(),
+        })
+        .where(eq(users.id, userId))
+        .returning({
+          id: users.id,
+          email: users.email,
+          displayName: users.displayName,
+          role: users.role,
+          status: users.status,
+          emailVerifiedAt: users.emailVerifiedAt,
+          lastLoginAt: users.lastLoginAt,
+          createdAt: users.createdAt,
+          updatedAt: users.updatedAt,
+        });
+
+      if (!updated) {
+        throw new IdentityError("User not found for display name update");
+      }
+
+      return {
+        id: updated.id,
+        email: updated.email,
+        displayName: updated.displayName,
+        role: updated.role as UserRole,
+        status: updated.status as UserStatus,
+        emailVerifiedAt: updated.emailVerifiedAt,
+        lastLoginAt: updated.lastLoginAt,
+        createdAt: updated.createdAt,
+        updatedAt: updated.updatedAt,
+      };
+    } catch (error: unknown) {
+      if (error instanceof IdentityError) {
+        throw error;
+      }
+      throw new IdentityError("Database error during display name update");
     }
   }
 }

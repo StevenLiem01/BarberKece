@@ -9,6 +9,7 @@ export const staffInvitations = pgTable(
       .primaryKey()
       .$defaultFn(() => uuidv7()),
     email: text("email").notNull(),
+    displayName: text("display_name"),
     role: text("role").notNull(),
     tokenHash: text("token_hash").notNull().unique(),
     expiresAt: timestamp("expires_at", {

@@ -10,6 +10,7 @@ describe("ResolveAuthenticatedUserUseCase", () => {
     findById: vi.fn(),
     countByRole: vi.fn(),
     updatePassword: vi.fn(),
+    updateDisplayName: vi.fn(),
   };
 
   const mockTokenPort = {
@@ -38,6 +39,7 @@ describe("ResolveAuthenticatedUserUseCase", () => {
   const validUser: User = {
     id: "user-123",
     email: "test@example.com",
+    displayName: "Test User",
     role: "CUSTOMER",
     status: "ACTIVE",
     emailVerifiedAt: null,

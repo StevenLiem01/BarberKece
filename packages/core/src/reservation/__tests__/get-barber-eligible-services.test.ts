@@ -9,6 +9,7 @@ import { Service } from "../models/service.js";
 const makeProfile = (): BarberProfile => ({
   id: "barber-1",
   userId: "user-1",
+  displayName: "Barber Fade",
   specialization: "Fade",
   createdAt: new Date(),
   updatedAt: new Date(),

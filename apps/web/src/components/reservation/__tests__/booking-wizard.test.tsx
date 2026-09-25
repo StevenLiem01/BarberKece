@@ -62,6 +62,7 @@ describe("Booking Wizard Business Logic & State Invariants", () => {
 
   const mockBarber: PublicBarberDto = {
     id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+    displayName: "Rizal",
     specialization: "Master Barber",
   };
 

@@ -17,6 +17,7 @@ import { ScheduleException } from "../models/schedule-exception.js";
 import { Appointment } from "../models/appointment.js";
 import { AppointmentStatus } from "../domain/appointment-status.js";
 import {
+  BarberNotAvailableForBookingError,
   BarberNotEligibleError,
   BookingHorizonExceededError,
   InactiveServiceError,
@@ -51,6 +52,7 @@ describe("GetAvailableSlotsUseCase", () => {
   const barberProfile1: BarberProfile = {
     id: "barber-1",
     userId: "user-1",
+    displayName: "Barber One",
     specialization: "Classic fades",
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -59,6 +61,7 @@ describe("GetAvailableSlotsUseCase", () => {
   const barberProfile2: BarberProfile = {
     id: "barber-2",
     userId: "user-2",
+    displayName: "Barber Two",
     specialization: "Beard styling",
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -746,6 +749,82 @@ describe("GetAvailableSlotsUseCase", () => {
           barberProfileId: "barber-1",
         }),
       ).rejects.toThrow(BarberNotEligibleError);
+    });
+
+    it("throws BarberNotAvailableForBookingError when barber has no valid displayName", async () => {
+      mockBarberProfileRepo = {
+        findById: async (id: string) => {
+          if (id === "barber-1") {
+            return {
+              ...barberProfile1,
+              displayName: null,
+            };
+          }
+          return null;
+        },
+      };
+
+      const useCase = new GetAvailableSlotsUseCase(
+        mockServiceRepo as ServiceRepository,
+        mockBarberProfileRepo as BarberProfileRepository,
+        mockBarberEligibilityRepo as BarberEligibilityRepository,
+        mockScheduleRepo as ScheduleRepository,
+        mockAppointmentRepo as AppointmentRepository,
+        mockClock,
+      );
+
+      await expect(
+        useCase.execute({
+          serviceId: activeService.id,
+          date: validDate,
+          barberProfileId: "barber-1",
+        }),
+      ).rejects.toThrow(BarberNotAvailableForBookingError);
+    });
+
+    it("excludes unnamed barbers from slot calculations in ANY mode", async () => {
+      // barber-1 is unnamed, barber-2 is named
+      mockBarberProfileRepo = {
+        findById: async (id: string) => {
+          if (id === "barber-1") {
+            return {
+              ...barberProfile1,
+              displayName: null,
+            };
+          }
+          if (id === "barber-2") {
+            return barberProfile2;
+          }
+          return null;
+        },
+      };
+
+      // If barber-1 is unnamed and barber-2 has no schedule, no slots should be generated
+      mockScheduleRepo = {
+        getBusinessHoursForDay: async () => shopBusinessHours,
+        getBarberSchedulesForDay: async (barberId: string) => {
+          if (barberId === "barber-1") return [barber1Schedule];
+          return []; // barber-2 has no schedule
+        },
+        getScheduleExceptions: async () => [],
+      };
+
+      const useCase = new GetAvailableSlotsUseCase(
+        mockServiceRepo as ServiceRepository,
+        mockBarberProfileRepo as BarberProfileRepository,
+        mockBarberEligibilityRepo as BarberEligibilityRepository,
+        mockScheduleRepo as ScheduleRepository,
+        mockAppointmentRepo as AppointmentRepository,
+        mockClock,
+      );
+
+      const result = await useCase.execute({
+        serviceId: activeService.id,
+        date: validDate,
+      });
+
+      // Since barber-1 is unnamed, their schedule is ignored; no slots generated
+      expect(result.slots).toEqual([]);
     });
   });
 });

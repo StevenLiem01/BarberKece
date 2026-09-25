@@ -16,6 +16,7 @@ describe("RequestPasswordResetUseCase", () => {
     findById: vi.fn(),
     countByRole: vi.fn(),
     updatePassword: vi.fn(),
+    updateDisplayName: vi.fn(),
   };
 
   const mockPasswordResetTokenRepository: PasswordResetTokenRepository = {
@@ -70,6 +71,7 @@ describe("RequestPasswordResetUseCase", () => {
   const activeUser: UserWithPasswordHash = {
     id: "user-uuid-1",
     email: "customer@example.com",
+    displayName: "Test User",
     passwordHash: "hash",
     role: "CUSTOMER",
     status: "ACTIVE",

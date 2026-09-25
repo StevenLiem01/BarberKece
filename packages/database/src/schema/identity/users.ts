@@ -10,6 +10,7 @@ export const users = pgTable(
       .$defaultFn(() => uuidv7()),
     email: text("email").notNull().unique(),
     passwordHash: text("password_hash").notNull(),
+    displayName: text("display_name"),
     role: text("role").notNull(),
     status: text("status").notNull(),
     emailVerifiedAt: timestamp("email_verified_at", {

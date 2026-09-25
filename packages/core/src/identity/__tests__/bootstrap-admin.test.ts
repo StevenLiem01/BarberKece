@@ -12,6 +12,7 @@ describe("BootstrapAdminUseCase", () => {
     findById: vi.fn(),
     countByRole: vi.fn(),
     updatePassword: vi.fn(),
+    updateDisplayName: vi.fn(),
   };
 
   const mockPasswordHashing: PasswordHashingPort = {
@@ -32,6 +33,7 @@ describe("BootstrapAdminUseCase", () => {
   const defaultAdminUser: User = {
     id: "admin-uuidv7",
     email: "admin@barberkece.com",
+    displayName: null,
     role: "ADMIN",
     status: "ACTIVE",
     emailVerifiedAt: null,
@@ -99,6 +101,7 @@ describe("BootstrapAdminUseCase", () => {
     vi.mocked(mockUserRepository.findByEmail).mockResolvedValueOnce({
       id: "customer-123",
       email: "existing@example.com",
+      displayName: null,
       passwordHash: "some-hash",
       role: "CUSTOMER",
       status: "ACTIVE",

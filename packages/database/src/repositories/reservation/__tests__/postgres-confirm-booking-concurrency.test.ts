@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { eq, inArray } from "drizzle-orm";
 import { uuidv7 } from "uuidv7";
-import { createDatabase, DatabaseClient } from "../../../client.js";
+import { DatabaseClient } from "../../../client.js";
 import { PostgresBookingTransactionRunner } from "../booking-transaction-runner.js";
 import { appointments } from "../../../schema/reservation/appointments.js";
 import { idempotencyRecords } from "../../../schema/reservation/idempotency_records.js";
@@ -18,34 +18,13 @@ import {
   CustomerBookingConflictError,
   IdempotencyPayloadMismatchError,
 } from "@barberkece/core/reservation";
-
-import { existsSync } from "node:fs";
-import { resolve } from "node:path";
-import process from "node:process";
-
-const candidatePaths = [
-  resolve(process.cwd(), ".env"),
-  resolve(process.cwd(), "../../.env"),
-];
-
-for (const envPath of candidatePaths) {
-  if (existsSync(envPath)) {
-    try {
-      process.loadEnvFile(envPath);
-      if (process.env["DATABASE_URL"]) {
-        break;
-      }
-    } catch {
-      // Ignore
-    }
-  }
-}
-
-const TEST_DB_URL =
-  process.env["DATABASE_URL"] ||
-  "postgres://barberkece_dev:devpassword@localhost:5432/barberkece_dev";
+import {
+  createSafeTestDatabaseContext,
+  type SafeTestDatabaseContext,
+} from "../../../testing/index.js";
 
 describe("PostgreSQL Confirm Booking Concurrency & Invariants", () => {
+  let safeDb: SafeTestDatabaseContext | undefined;
   let dbClient: DatabaseClient;
   let runner: PostgresBookingTransactionRunner;
 
@@ -67,7 +46,8 @@ describe("PostgreSQL Confirm Booking Concurrency & Invariants", () => {
   const testClock = { now: () => FIXED_NOW };
 
   beforeAll(async () => {
-    dbClient = createDatabase(TEST_DB_URL);
+    safeDb = await createSafeTestDatabaseContext();
+    dbClient = safeDb.dbClient;
     runner = new PostgresBookingTransactionRunner(dbClient.db);
 
     // Setup Wednesday business hours (day 3: 09:00 - 21:00)
@@ -131,6 +111,7 @@ describe("PostgreSQL Confirm Booking Concurrency & Invariants", () => {
       passwordHash: "dummyhash",
       role: "BARBER",
       status: "ACTIVE",
+      displayName: "Barber One",
     });
 
     testBarber1Id = uuidv7();
@@ -163,6 +144,7 @@ describe("PostgreSQL Confirm Booking Concurrency & Invariants", () => {
       passwordHash: "dummyhash",
       role: "BARBER",
       status: "ACTIVE",
+      displayName: "Barber Two",
     });
 
     testBarber2Id = uuidv7();
@@ -188,42 +170,44 @@ describe("PostgreSQL Confirm Booking Concurrency & Invariants", () => {
   });
 
   afterAll(async () => {
-    if (dbClient) {
-      if (cleanupAppointments.length > 0) {
-        await dbClient.db
-          .delete(idempotencyRecords)
-          .where(
-            inArray(idempotencyRecords.appointmentId, cleanupAppointments),
-          );
-        await dbClient.db
-          .delete(appointments)
-          .where(inArray(appointments.id, cleanupAppointments));
-      }
-      if (cleanupIdempotencyRecords.length > 0) {
-        await dbClient.db
-          .delete(idempotencyRecords)
-          .where(inArray(idempotencyRecords.id, cleanupIdempotencyRecords));
-      }
-      if (cleanupBarbers.length > 0) {
-        await dbClient.db
-          .delete(barberServices)
-          .where(inArray(barberServices.barberProfileId, cleanupBarbers));
-        await dbClient.db
-          .delete(barberSchedules)
-          .where(inArray(barberSchedules.barberProfileId, cleanupBarbers));
-        await dbClient.db
-          .delete(barberProfiles)
-          .where(inArray(barberProfiles.id, cleanupBarbers));
-      }
-      if (cleanupServices.length > 0) {
-        await dbClient.db
-          .delete(services)
-          .where(inArray(services.id, cleanupServices));
-      }
-      if (cleanupUsers.length > 0) {
-        await dbClient.db.delete(users).where(inArray(users.id, cleanupUsers));
-      }
-      await dbClient.close();
+    if (safeDb?.isVerified) {
+      await safeDb.safeCleanup(async () => {
+        if (cleanupAppointments.length > 0) {
+          await dbClient.db
+            .delete(idempotencyRecords)
+            .where(
+              inArray(idempotencyRecords.appointmentId, cleanupAppointments),
+            );
+          await dbClient.db
+            .delete(appointments)
+            .where(inArray(appointments.id, cleanupAppointments));
+        }
+        if (cleanupIdempotencyRecords.length > 0) {
+          await dbClient.db
+            .delete(idempotencyRecords)
+            .where(inArray(idempotencyRecords.id, cleanupIdempotencyRecords));
+        }
+        if (cleanupBarbers.length > 0) {
+          await dbClient.db
+            .delete(barberServices)
+            .where(inArray(barberServices.barberProfileId, cleanupBarbers));
+          await dbClient.db
+            .delete(barberSchedules)
+            .where(inArray(barberSchedules.barberProfileId, cleanupBarbers));
+          await dbClient.db
+            .delete(barberProfiles)
+            .where(inArray(barberProfiles.id, cleanupBarbers));
+        }
+        if (cleanupServices.length > 0) {
+          await dbClient.db
+            .delete(services)
+            .where(inArray(services.id, cleanupServices));
+        }
+        if (cleanupUsers.length > 0) {
+          await dbClient.db.delete(users).where(inArray(users.id, cleanupUsers));
+        }
+      });
+      await safeDb.close();
     }
   });
 

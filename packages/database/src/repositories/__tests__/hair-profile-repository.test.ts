@@ -1,45 +1,25 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { PostgresHairProfileRepository } from "../hair-profile-repository.js";
-import { createDatabase, DatabaseClient } from "../../client.js";
+import { DatabaseClient } from "../../client.js";
 import { users, hairProfiles } from "../../schema/index.js";
 import { SaveHairProfileInput } from "@barberkece/core/identity";
 import { eq, inArray } from "drizzle-orm";
 import { uuidv7 } from "uuidv7";
-
-import { existsSync } from "node:fs";
-import { resolve } from "node:path";
-import process from "node:process";
-
-const candidatePaths = [
-  resolve(process.cwd(), ".env"),
-  resolve(process.cwd(), "../../.env"),
-];
-
-for (const envPath of candidatePaths) {
-  if (existsSync(envPath)) {
-    try {
-      process.loadEnvFile(envPath);
-      if (process.env["DATABASE_URL"]) {
-        break;
-      }
-    } catch {
-      // Ignore
-    }
-  }
-}
-
-const TEST_DB_URL =
-  process.env["DATABASE_URL"] ||
-  "postgres://barberkece_dev:devpassword@localhost:5432/barberkece_dev";
+import {
+  createSafeTestDatabaseContext,
+  type SafeTestDatabaseContext,
+} from "../../testing/index.js";
 
 describe("PostgresHairProfileRepository", () => {
+  let safeDb: SafeTestDatabaseContext | undefined;
   let dbClient: DatabaseClient;
   let repository: PostgresHairProfileRepository;
   const createdUserIds: string[] = [];
   let testUserId: string;
 
   beforeAll(async () => {
-    dbClient = createDatabase(TEST_DB_URL);
+    safeDb = await createSafeTestDatabaseContext();
+    dbClient = safeDb.dbClient;
     repository = new PostgresHairProfileRepository(dbClient.db);
     testUserId = uuidv7();
     createdUserIds.push(testUserId);
@@ -54,10 +34,14 @@ describe("PostgresHairProfileRepository", () => {
   });
 
   afterAll(async () => {
-    if (createdUserIds.length > 0) {
-      await dbClient.db.delete(users).where(inArray(users.id, createdUserIds));
+    if (safeDb?.isVerified) {
+      await safeDb.safeCleanup(async () => {
+        if (createdUserIds.length > 0) {
+          await dbClient.db.delete(users).where(inArray(users.id, createdUserIds));
+        }
+      });
+      await safeDb.close();
     }
-    await dbClient.close();
   });
 
   it("returns null if hair profile does not exist", async () => {

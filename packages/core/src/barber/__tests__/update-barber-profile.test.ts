@@ -9,6 +9,7 @@ const makeProfile = (
 ): BarberProfile => ({
   id: "profile-1",
   userId: "user-1",
+  displayName: "Fajar",
   specialization: null,
   createdAt: new Date(),
   updatedAt: new Date(),

@@ -83,11 +83,13 @@ describe("POST /api/v1/auth/register", () => {
     mockExecute.mockResolvedValue({
       id: "user-123",
       email: "test@example.com",
+      displayName: "Test User",
       role: "CUSTOMER",
       status: "ACTIVE",
     });
 
     const req = createRequest({
+      displayName: "Test User",
       email: "test@example.com",
       password: "password123",
     });
@@ -132,6 +134,7 @@ describe("POST /api/v1/auth/register", () => {
     );
 
     const req = createRequest({
+      displayName: "Duplicate User",
       email: "duplicate@example.com",
       password: "password123",
     });
@@ -149,6 +152,7 @@ describe("POST /api/v1/auth/register", () => {
     );
 
     const req = createRequest({
+      displayName: "Error User",
       email: "error@example.com",
       password: "password123",
     });
@@ -163,6 +167,7 @@ describe("POST /api/v1/auth/register", () => {
     mockExecute.mockRejectedValue(new Error("Database exploded"));
 
     const req = createRequest({
+      displayName: "Error User",
       email: "error@example.com",
       password: "password123",
     });
@@ -250,12 +255,13 @@ describe("POST /api/v1/auth/register", () => {
       mockExecute.mockResolvedValue({
         id: "user-123",
         email: "test@example.com",
+        displayName: "Test User",
         role: "CUSTOMER",
         status: "ACTIVE",
       });
 
       const req = createRequest(
-        { email: "test@example.com", password: "password123" },
+        { displayName: "Test User", email: "test@example.com", password: "password123" },
         {
           origin: "http://localhost:3000",
           host: "localhost:3000",
@@ -271,12 +277,13 @@ describe("POST /api/v1/auth/register", () => {
       mockExecute.mockResolvedValue({
         id: "user-123",
         email: "test@example.com",
+        displayName: "Test User",
         role: "CUSTOMER",
         status: "ACTIVE",
       });
 
       const req = createRequest(
-        { email: "test@example.com", password: "password123" },
+        { displayName: "Test User", email: "test@example.com", password: "password123" },
         {
           referer: "http://localhost:3000/register",
           host: "localhost:3000",
@@ -292,12 +299,13 @@ describe("POST /api/v1/auth/register", () => {
       mockExecute.mockResolvedValue({
         id: "user-123",
         email: "test@example.com",
+        displayName: "Test User",
         role: "CUSTOMER",
         status: "ACTIVE",
       });
 
       const req = createRequest(
-        { email: "test@example.com", password: "password123" },
+        { displayName: "Test User", email: "test@example.com", password: "password123" },
         {
           origin: "http://localhost:3000",
           referer: "https://evil.com/attacker",

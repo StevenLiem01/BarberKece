@@ -10,6 +10,7 @@ describe("AuthenticateUserUseCase", () => {
     findById: vi.fn(),
     countByRole: vi.fn(),
     updatePassword: vi.fn(),
+    updateDisplayName: vi.fn(),
   };
 
   const mockPasswordHashing = {
@@ -44,6 +45,7 @@ describe("AuthenticateUserUseCase", () => {
   const validUser: UserWithPasswordHash = {
     id: "user-123",
     email: "test@example.com",
+    displayName: "Test User",
     passwordHash: "hashed-pass",
     role: "CUSTOMER",
     status: "ACTIVE",
@@ -97,6 +99,7 @@ describe("AuthenticateUserUseCase", () => {
     expect(result.user).toEqual({
       id: validUser.id,
       email: validUser.email,
+      displayName: validUser.displayName,
       role: validUser.role,
       status: validUser.status,
       emailVerifiedAt: validUser.emailVerifiedAt,

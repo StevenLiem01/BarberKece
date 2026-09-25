@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { eq, sql } from "drizzle-orm";
 import {
-  createDatabase,
   DatabaseClient,
   BOOTSTRAP_ADMIN_ADVISORY_LOCK_ID,
 } from "../../index.js";
@@ -13,32 +12,10 @@ import {
   User,
 } from "@barberkece/core/identity";
 import { Argon2PasswordHashingAdapter } from "@barberkece/infrastructure/identity";
-
-import { existsSync } from "node:fs";
-import { resolve } from "node:path";
-import process from "node:process";
-
-const candidatePaths = [
-  resolve(process.cwd(), ".env"),
-  resolve(process.cwd(), "../../.env"),
-];
-
-for (const envPath of candidatePaths) {
-  if (existsSync(envPath)) {
-    try {
-      process.loadEnvFile(envPath);
-      if (process.env["DATABASE_URL"]) {
-        break;
-      }
-    } catch {
-      // Ignore
-    }
-  }
-}
-
-const TEST_DB_URL =
-  process.env["DATABASE_URL"] ||
-  "postgres://barberkece_dev:devpassword@localhost:5432/barberkece_dev";
+import {
+  createSafeTestDatabaseContext,
+  type SafeTestDatabaseContext,
+} from "../../testing/index.js";
 
 async function executeTransactionalBootstrap(
   client: DatabaseClient,
@@ -57,6 +34,7 @@ async function executeTransactionalBootstrap(
 }
 
 describe("BootstrapAdmin Flow (Integration)", () => {
+  let safeDb: SafeTestDatabaseContext | undefined;
   let dbClient: DatabaseClient;
   let repository: PostgresUserRepository;
   let passwordHashing: Argon2PasswordHashingAdapter;
@@ -64,18 +42,23 @@ describe("BootstrapAdmin Flow (Integration)", () => {
   const createdAdminIds: string[] = [];
 
   beforeAll(async () => {
-    dbClient = createDatabase(TEST_DB_URL);
+    safeDb = await createSafeTestDatabaseContext();
+    dbClient = safeDb.dbClient;
     repository = new PostgresUserRepository(dbClient.db);
     passwordHashing = new Argon2PasswordHashingAdapter();
     preExistingAdminCount = await repository.countByRole("ADMIN");
   });
 
   afterAll(async () => {
-    // Safely delete ONLY records created by this test suite
-    for (const adminId of createdAdminIds) {
-      await dbClient.db.delete(users).where(eq(users.id, adminId));
+    if (safeDb?.isVerified) {
+      await safeDb.safeCleanup(async () => {
+        // Safely delete ONLY records created by this test suite
+        for (const adminId of createdAdminIds) {
+          await dbClient.db.delete(users).where(eq(users.id, adminId));
+        }
+      });
+      await safeDb.close();
     }
-    await dbClient.close();
   });
 
   it("successfully creates the initial admin in PostgreSQL with real Argon2id password hash", async () => {

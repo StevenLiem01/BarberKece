@@ -1,57 +1,41 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { eq } from "drizzle-orm";
 import { uuidv7 } from "uuidv7";
-import { createDatabase, DatabaseClient } from "../../../client.js";
+import { DatabaseClient } from "../../../client.js";
 import { PostgresBarberProfileRepository } from "../barber-profile-repository.js";
 import { barberProfiles } from "../../../schema/barber/barber_profiles.js";
 import { users } from "../../../schema/identity/users.js";
-
-import { existsSync } from "node:fs";
-import { resolve } from "node:path";
-import process from "node:process";
 import { BarberProfileAlreadyExistsError } from "@barberkece/core/barber";
-
-const candidatePaths = [
-  resolve(process.cwd(), ".env"),
-  resolve(process.cwd(), "../../.env"),
-];
-
-for (const envPath of candidatePaths) {
-  if (existsSync(envPath)) {
-    try {
-      process.loadEnvFile(envPath);
-      if (process.env["DATABASE_URL"]) {
-        break;
-      }
-    } catch {
-      // Ignore
-    }
-  }
-}
-
-const TEST_DB_URL =
-  process.env["DATABASE_URL"] ||
-  "postgres://barberkece_dev:devpassword@localhost:5432/barberkece_dev";
+import {
+  createSafeTestDatabaseContext,
+  type SafeTestDatabaseContext,
+} from "../../../testing/index.js";
 
 describe("PostgresBarberProfileRepository", () => {
+  let safeDb: SafeTestDatabaseContext | undefined;
   let dbClient: DatabaseClient;
   let repository: PostgresBarberProfileRepository;
   const testUserIds: string[] = [];
   const testProfileIds: string[] = [];
 
-  beforeAll(() => {
-    dbClient = createDatabase(TEST_DB_URL);
+  beforeAll(async () => {
+    safeDb = await createSafeTestDatabaseContext();
+    dbClient = safeDb.dbClient;
     repository = new PostgresBarberProfileRepository(dbClient.db);
   });
 
   afterAll(async () => {
-    for (const id of testProfileIds) {
-      await dbClient.db.delete(barberProfiles).where(eq(barberProfiles.id, id));
+    if (safeDb?.isVerified) {
+      await safeDb.safeCleanup(async () => {
+        for (const id of testProfileIds) {
+          await dbClient.db.delete(barberProfiles).where(eq(barberProfiles.id, id));
+        }
+        for (const id of testUserIds) {
+          await dbClient.db.delete(users).where(eq(users.id, id));
+        }
+      });
+      await safeDb.close();
     }
-    for (const id of testUserIds) {
-      await dbClient.db.delete(users).where(eq(users.id, id));
-    }
-    await dbClient.close();
   });
 
   async function createTestUser() {

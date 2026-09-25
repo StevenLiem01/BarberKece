@@ -4,6 +4,7 @@ export type UserStatus = "ACTIVE" | "SUSPENDED" | "DISABLED" | "PENDING";
 export interface User {
   id: string;
   email: string;
+  displayName: string | null;
   // passwordHash is deliberately omitted from the domain model read model
   // to ensure it is never returned to clients or logged by default.
   // We handle it explicitly where needed (e.g. login).

@@ -43,6 +43,7 @@ export class ResolveAuthenticatedUserUseCase {
     const safeUser: User = {
       id: user.id,
       email: user.email,
+      displayName: user.displayName,
       role: user.role,
       status: user.status,
       emailVerifiedAt: user.emailVerifiedAt,

@@ -7,6 +7,7 @@ import { BarberProfile } from "../models/barber-profile.js";
 const makeProfile = (): BarberProfile => ({
   id: "profile-1",
   userId: "user-1",
+  displayName: "Ahmad Barber",
   specialization: "Fade",
   createdAt: new Date(),
   updatedAt: new Date(),

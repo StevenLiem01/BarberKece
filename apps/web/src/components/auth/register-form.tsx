@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { RegisterCustomerSchema } from "@barberkece/contracts";
 
 export function RegisterForm() {
+  const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -17,7 +18,11 @@ export function RegisterForm() {
     setError(null);
     setFieldErrors({});
 
-    const parsed = RegisterCustomerSchema.safeParse({ email, password });
+    const parsed = RegisterCustomerSchema.safeParse({
+      displayName,
+      email,
+      password,
+    });
     if (!parsed.success) {
       setFieldErrors(
         parsed.error.flatten().fieldErrors as Record<string, string[]>,
@@ -68,6 +73,36 @@ export function RegisterForm() {
           {error}
         </div>
       )}
+
+      <div className="space-y-1">
+        <label
+          htmlFor="displayName"
+          className="block text-sm font-medium text-neutral-700"
+        >
+          Nama
+        </label>
+        <input
+          id="displayName"
+          type="text"
+          autoComplete="name"
+          value={displayName}
+          onChange={(e) => setDisplayName(e.target.value)}
+          disabled={isLoading}
+          maxLength={100}
+          className={`w-full p-2 border rounded focus:ring-2 focus:ring-lime-400 focus:border-transparent outline-none ${
+            fieldErrors.displayName ? "border-red-500" : "border-neutral-300"
+          }`}
+          aria-invalid={!!fieldErrors.displayName}
+          aria-describedby={
+            fieldErrors.displayName ? "displayName-error" : undefined
+          }
+        />
+        {fieldErrors.displayName && (
+          <p id="displayName-error" className="text-red-500 text-sm">
+            {fieldErrors.displayName[0]}
+          </p>
+        )}
+      </div>
 
       <div className="space-y-1">
         <label
@@ -122,7 +157,7 @@ export function RegisterForm() {
         disabled={isLoading}
         className="w-full py-2 bg-neutral-900 text-white rounded font-medium hover:bg-neutral-800 focus:ring-2 focus:ring-offset-2 focus:ring-neutral-900 disabled:opacity-50 transition-colors"
       >
-        {isLoading ? "Creating account..." : "Sign up"}
+        {isLoading ? "Membuat akun..." : "Daftar"}
       </button>
     </form>
   );

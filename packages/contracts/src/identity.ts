@@ -1,6 +1,11 @@
 import { z } from "zod";
 
 export const RegisterCustomerSchema = z.object({
+  displayName: z
+    .string()
+    .trim()
+    .min(1, "Nama tidak boleh kosong")
+    .max(100, "Nama tidak boleh lebih dari 100 karakter"),
   email: z.string().email("Invalid email format"),
   password: z.string().min(8, "Password must be at least 8 characters long"),
 });
@@ -55,3 +60,46 @@ export const SaveHairProfileSchema = z.object({
 });
 
 export type SaveHairProfileRequest = z.infer<typeof SaveHairProfileSchema>;
+
+export const StaffRoleEnum = z.enum(["BARBER", "ADMIN"]);
+export type StaffRole = z.infer<typeof StaffRoleEnum>;
+
+export const CreateStaffInvitationSchema = z.object({
+  displayName: z
+    .string()
+    .trim()
+    .min(1, "Nama lengkap staf wajib diisi")
+    .max(100, "Nama tidak boleh lebih dari 100 karakter"),
+  email: z.string().trim().toLowerCase().email("Format email tidak valid"),
+  role: StaffRoleEnum,
+});
+
+export type CreateStaffInvitationRequest = z.infer<
+  typeof CreateStaffInvitationSchema
+>;
+
+export const AcceptStaffInvitationSchema = z.object({
+  token: z.string().min(1, "Token undangan wajib diisi"),
+  password: z.string().min(8, "Password minimal 8 karakter"),
+});
+
+export type AcceptStaffInvitationRequest = z.infer<
+  typeof AcceptStaffInvitationSchema
+>;
+
+export interface StaffInvitationDto {
+  id: string;
+  email: string;
+  displayName: string | null;
+  role: "BARBER" | "ADMIN";
+  expiresAt: string;
+  createdAt: string;
+}
+
+export interface PublicStaffInvitationDto {
+  email?: string;
+  displayName?: string | null;
+  role?: "BARBER" | "ADMIN";
+  isValid: boolean;
+  reason?: "EXPIRED" | "USED" | "NOT_FOUND" | "USER_ALREADY_EXISTS";
+}

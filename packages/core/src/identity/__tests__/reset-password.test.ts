@@ -16,6 +16,7 @@ describe("ResetPasswordUseCase", () => {
     findById: vi.fn(),
     countByRole: vi.fn(),
     updatePassword: vi.fn(),
+    updateDisplayName: vi.fn(),
   };
 
   const mockPasswordResetTokenRepository: PasswordResetTokenRepository = {

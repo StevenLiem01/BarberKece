@@ -15,6 +15,7 @@ import {
 } from "../domain/date-utils.js";
 import { TimeInterval } from "../domain/time-interval.js";
 import {
+  BarberNotAvailableForBookingError,
   BarberNotEligibleError,
   BarberNotWorkingError,
   BookingHorizonExceededError,
@@ -240,6 +241,17 @@ export class ConfirmBookingUseCase {
           throw new BarberProfileNotFoundError(input.barberProfileId);
         }
 
+        const barber = await context.barberProfileRepository.findById(
+          input.barberProfileId,
+        );
+        if (
+          !barber ||
+          !barber.displayName ||
+          barber.displayName.trim().length === 0
+        ) {
+          throw new BarberNotAvailableForBookingError(input.barberProfileId);
+        }
+
         const isEligible = await context.barberEligibilityRepository.isEligible(
           input.barberProfileId,
           input.serviceId,
@@ -317,6 +329,16 @@ export class ConfirmBookingUseCase {
         const availableBarberIds: string[] = [];
 
         for (const barberId of lockedBarberIds) {
+          const barber =
+            await context.barberProfileRepository.findById(barberId);
+          if (
+            !barber ||
+            !barber.displayName ||
+            barber.displayName.trim().length === 0
+          ) {
+            continue;
+          }
+
           const schedules =
             await context.scheduleRepository.getBarberSchedulesForDay(
               barberId,

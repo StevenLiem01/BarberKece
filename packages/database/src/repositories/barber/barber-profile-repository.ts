@@ -1,6 +1,7 @@
 import { eq, inArray } from "drizzle-orm";
 import type { DbOrTx } from "../../client.js";
 import { barberProfiles } from "../../schema/barber/barber_profiles.js";
+import { users } from "../../schema/identity/users.js";
 import {
   BarberProfile,
   BarberProfileAlreadyExistsError,
@@ -28,7 +29,20 @@ export class PostgresBarberProfileRepository implements BarberProfileRepository 
         throw new Error("Failed to provision barber profile");
       }
 
-      return inserted;
+      // Fetch displayName from users after insertion
+      const userRow = await this.db.query.users.findFirst({
+        where: eq(users.id, inserted.userId),
+        columns: { displayName: true },
+      });
+
+      return {
+        id: inserted.id,
+        userId: inserted.userId,
+        displayName: userRow?.displayName ?? null,
+        specialization: inserted.specialization,
+        createdAt: inserted.createdAt,
+        updatedAt: inserted.updatedAt,
+      };
     } catch (error: unknown) {
       if (
         (typeof error === "object" &&
@@ -66,29 +80,100 @@ export class PostgresBarberProfileRepository implements BarberProfileRepository 
       throw new Error("Barber profile not found");
     }
 
-    return updated;
+    // Fetch displayName from users
+    const userRow = await this.db.query.users.findFirst({
+      where: eq(users.id, updated.userId),
+      columns: { displayName: true },
+    });
+
+    return {
+      id: updated.id,
+      userId: updated.userId,
+      displayName: userRow?.displayName ?? null,
+      specialization: updated.specialization,
+      createdAt: updated.createdAt,
+      updatedAt: updated.updatedAt,
+    };
   }
 
   async findById(id: string): Promise<BarberProfile | null> {
-    const profile = await this.db.query.barberProfiles.findFirst({
-      where: eq(barberProfiles.id, id),
-    });
+    const result = await this.db
+      .select({
+        id: barberProfiles.id,
+        userId: barberProfiles.userId,
+        displayName: users.displayName,
+        specialization: barberProfiles.specialization,
+        createdAt: barberProfiles.createdAt,
+        updatedAt: barberProfiles.updatedAt,
+      })
+      .from(barberProfiles)
+      .innerJoin(users, eq(barberProfiles.userId, users.id))
+      .where(eq(barberProfiles.id, id))
+      .limit(1);
 
-    return profile ?? null;
+    const row = result[0];
+    if (!row) return null;
+
+    return {
+      id: row.id,
+      userId: row.userId,
+      displayName: row.displayName,
+      specialization: row.specialization,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+    };
   }
 
   async findByUserId(userId: string): Promise<BarberProfile | null> {
-    const profile = await this.db.query.barberProfiles.findFirst({
-      where: eq(barberProfiles.userId, userId),
-    });
+    const result = await this.db
+      .select({
+        id: barberProfiles.id,
+        userId: barberProfiles.userId,
+        displayName: users.displayName,
+        specialization: barberProfiles.specialization,
+        createdAt: barberProfiles.createdAt,
+        updatedAt: barberProfiles.updatedAt,
+      })
+      .from(barberProfiles)
+      .innerJoin(users, eq(barberProfiles.userId, users.id))
+      .where(eq(barberProfiles.userId, userId))
+      .limit(1);
 
-    return profile ?? null;
+    const row = result[0];
+    if (!row) return null;
+
+    return {
+      id: row.id,
+      userId: row.userId,
+      displayName: row.displayName,
+      specialization: row.specialization,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+    };
   }
 
   async findAll(): Promise<BarberProfile[]> {
-    return this.db.query.barberProfiles.findMany({
-      orderBy: (barberProfiles, { desc }) => [desc(barberProfiles.createdAt)],
-    });
+    const result = await this.db
+      .select({
+        id: barberProfiles.id,
+        userId: barberProfiles.userId,
+        displayName: users.displayName,
+        specialization: barberProfiles.specialization,
+        createdAt: barberProfiles.createdAt,
+        updatedAt: barberProfiles.updatedAt,
+      })
+      .from(barberProfiles)
+      .innerJoin(users, eq(barberProfiles.userId, users.id))
+      .orderBy(barberProfiles.createdAt);
+
+    return result.map((row) => ({
+      id: row.id,
+      userId: row.userId,
+      displayName: row.displayName,
+      specialization: row.specialization,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+    }));
   }
 
   async lockProfiles(ids: string[]): Promise<string[]> {

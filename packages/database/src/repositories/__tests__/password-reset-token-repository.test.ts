@@ -1,40 +1,19 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { eq } from "drizzle-orm";
 import { uuidv7 } from "uuidv7";
-import { createDatabase, DatabaseClient } from "../../client.js";
+import { DatabaseClient } from "../../client.js";
 import { PostgresUserRepository } from "../user-repository.js";
 import { PostgresPasswordResetTokenRepository } from "../password-reset-token-repository.js";
 import { users } from "../../schema/identity/users.js";
 import { passwordResetTokens } from "../../schema/identity/password_reset_tokens.js";
 import { IdentityError } from "@barberkece/core/identity";
-
-import { existsSync } from "node:fs";
-import { resolve } from "node:path";
-import process from "node:process";
-
-const candidatePaths = [
-  resolve(process.cwd(), ".env"),
-  resolve(process.cwd(), "../../.env"),
-];
-
-for (const envPath of candidatePaths) {
-  if (existsSync(envPath)) {
-    try {
-      process.loadEnvFile(envPath);
-      if (process.env["DATABASE_URL"]) {
-        break;
-      }
-    } catch {
-      // Ignore
-    }
-  }
-}
-
-const TEST_DB_URL =
-  process.env["DATABASE_URL"] ||
-  "postgres://barberkece_dev:devpassword@localhost:5432/barberkece_dev";
+import {
+  createSafeTestDatabaseContext,
+  type SafeTestDatabaseContext,
+} from "../../testing/index.js";
 
 describe("PostgresPasswordResetTokenRepository & UserRepository.updatePassword", () => {
+  let safeDb: SafeTestDatabaseContext | undefined;
   let dbClient: DatabaseClient;
   let userRepo: PostgresUserRepository;
   let tokenRepo: PostgresPasswordResetTokenRepository;
@@ -42,22 +21,27 @@ describe("PostgresPasswordResetTokenRepository & UserRepository.updatePassword",
   const testTokenIds: string[] = [];
 
   beforeAll(async () => {
-    dbClient = createDatabase(TEST_DB_URL);
+    safeDb = await createSafeTestDatabaseContext();
+    dbClient = safeDb.dbClient;
     userRepo = new PostgresUserRepository(dbClient.db);
     tokenRepo = new PostgresPasswordResetTokenRepository(dbClient.db);
   });
 
   afterAll(async () => {
-    // Explicit test data safety: Clean up ONLY test-created tokens and users
-    for (const tokenId of testTokenIds) {
-      await dbClient.db
-        .delete(passwordResetTokens)
-        .where(eq(passwordResetTokens.id, tokenId));
+    if (safeDb?.isVerified) {
+      await safeDb.safeCleanup(async () => {
+        // Explicit test data safety: Clean up ONLY test-created tokens and users
+        for (const tokenId of testTokenIds) {
+          await dbClient.db
+            .delete(passwordResetTokens)
+            .where(eq(passwordResetTokens.id, tokenId));
+        }
+        for (const userId of testUserIds) {
+          await dbClient.db.delete(users).where(eq(users.id, userId));
+        }
+      });
+      await safeDb.close();
     }
-    for (const userId of testUserIds) {
-      await dbClient.db.delete(users).where(eq(users.id, userId));
-    }
-    await dbClient.close();
   });
 
   async function createTestUser(emailSuffix: string) {

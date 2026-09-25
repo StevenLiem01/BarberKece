@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import { PostgresHairstyleKnowledgeRepository } from "../recommendation.js";
-import { createDatabase, DatabaseClient } from "../../client.js";
+import { DatabaseClient } from "../../client.js";
 import { HairstyleKnowledge } from "@barberkece/core/recommendation";
 import {
   hairstyleKnowledge,
@@ -9,49 +9,37 @@ import {
 } from "../../schema/recommendation/hairstyle_knowledge.js";
 import { eq } from "drizzle-orm";
 import { uuidv7 } from "uuidv7";
-
-import process from "node:process";
-import { existsSync } from "node:fs";
-import { resolve } from "node:path";
-
-const candidatePaths = [
-  resolve(process.cwd(), ".env"),
-  resolve(process.cwd(), "../../.env"),
-];
-
-for (const envPath of candidatePaths) {
-  if (existsSync(envPath)) {
-    try {
-      process.loadEnvFile(envPath);
-      if (process.env["DATABASE_URL"]) {
-        break;
-      }
-    } catch {
-      // Ignore
-    }
-  }
-}
-
-const TEST_DB_URL =
-  process.env["DATABASE_URL"] ||
-  "postgres://barberkece_dev:devpassword@localhost:5432/barberkece_dev";
+import {
+  createSafeTestDatabaseContext,
+  type SafeTestDatabaseContext,
+} from "../../testing/index.js";
 
 describe("PostgresHairstyleKnowledgeRepository", () => {
+  let safeDb: SafeTestDatabaseContext | undefined;
   let dbClient: DatabaseClient;
   let repository: PostgresHairstyleKnowledgeRepository;
 
-  beforeAll(() => {
-    dbClient = createDatabase(TEST_DB_URL);
+  beforeAll(async () => {
+    safeDb = await createSafeTestDatabaseContext();
+    dbClient = safeDb.dbClient;
     repository = new PostgresHairstyleKnowledgeRepository(dbClient.db);
   });
 
   beforeEach(async () => {
-    await dbClient.db.delete(hairstyleKnowledge);
+    if (safeDb?.isVerified) {
+      await safeDb.safeCleanup(async () => {
+        await dbClient.db.delete(hairstyleKnowledge);
+      });
+    }
   });
 
   afterAll(async () => {
-    await dbClient.db.delete(hairstyleKnowledge);
-    await dbClient.close();
+    if (safeDb?.isVerified) {
+      await safeDb.safeCleanup(async () => {
+        await dbClient.db.delete(hairstyleKnowledge);
+      });
+      await safeDb.close();
+    }
   });
 
   const getValidFixture = (): HairstyleKnowledge => ({

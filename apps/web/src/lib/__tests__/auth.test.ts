@@ -70,6 +70,7 @@ describe("auth helpers", () => {
   const validUser: User = {
     id: "user-123",
     email: "test@example.com",
+    displayName: "Test User",
     role: "CUSTOMER",
     status: "ACTIVE",
     emailVerifiedAt: null,

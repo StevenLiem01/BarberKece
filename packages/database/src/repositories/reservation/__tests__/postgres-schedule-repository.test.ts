@@ -1,41 +1,20 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { inArray } from "drizzle-orm";
 import { uuidv7 } from "uuidv7";
-import { createDatabase, DatabaseClient } from "../../../client.js";
+import { DatabaseClient } from "../../../client.js";
 import { PostgresScheduleRepository } from "../postgres-schedule-repository.js";
 import { businessHours } from "../../../schema/reservation/business_hours.js";
 import { barberSchedules } from "../../../schema/reservation/barber_schedules.js";
 import { scheduleExceptions } from "../../../schema/reservation/schedule_exceptions.js";
 import { barberProfiles } from "../../../schema/barber/barber_profiles.js";
 import { users } from "../../../schema/identity/users.js";
-
-import { existsSync } from "node:fs";
-import { resolve } from "node:path";
-import process from "node:process";
-
-const candidatePaths = [
-  resolve(process.cwd(), ".env"),
-  resolve(process.cwd(), "../../.env"),
-];
-
-for (const envPath of candidatePaths) {
-  if (existsSync(envPath)) {
-    try {
-      process.loadEnvFile(envPath);
-      if (process.env["DATABASE_URL"]) {
-        break;
-      }
-    } catch {
-      // Ignore
-    }
-  }
-}
-
-const TEST_DB_URL =
-  process.env["DATABASE_URL"] ||
-  "postgres://barberkece_dev:devpassword@localhost:5432/barberkece_dev";
+import {
+  createSafeTestDatabaseContext,
+  type SafeTestDatabaseContext,
+} from "../../../testing/index.js";
 
 describe("PostgresScheduleRepository", () => {
+  let safeDb: SafeTestDatabaseContext | undefined;
   let dbClient: DatabaseClient;
   let repository: PostgresScheduleRepository;
 
@@ -48,7 +27,8 @@ describe("PostgresScheduleRepository", () => {
   let barberId: string;
 
   beforeAll(async () => {
-    dbClient = createDatabase(TEST_DB_URL);
+    safeDb = await createSafeTestDatabaseContext();
+    dbClient = safeDb.dbClient;
     repository = new PostgresScheduleRepository(dbClient.db);
 
     const barberUser = uuidv7();
@@ -71,30 +51,34 @@ describe("PostgresScheduleRepository", () => {
   });
 
   afterAll(async () => {
-    if (testExceptionIds.length > 0) {
-      await dbClient.db
-        .delete(scheduleExceptions)
-        .where(inArray(scheduleExceptions.id, testExceptionIds));
+    if (safeDb?.isVerified) {
+      await safeDb.safeCleanup(async () => {
+        if (testExceptionIds.length > 0) {
+          await dbClient.db
+            .delete(scheduleExceptions)
+            .where(inArray(scheduleExceptions.id, testExceptionIds));
+        }
+        if (testScheduleIds.length > 0) {
+          await dbClient.db
+            .delete(barberSchedules)
+            .where(inArray(barberSchedules.id, testScheduleIds));
+        }
+        if (testDaysOfWeek.length > 0) {
+          await dbClient.db
+            .delete(businessHours)
+            .where(inArray(businessHours.dayOfWeek, testDaysOfWeek));
+        }
+        if (testBarberIds.length > 0) {
+          await dbClient.db
+            .delete(barberProfiles)
+            .where(inArray(barberProfiles.id, testBarberIds));
+        }
+        if (testUserIds.length > 0) {
+          await dbClient.db.delete(users).where(inArray(users.id, testUserIds));
+        }
+      });
+      await safeDb.close();
     }
-    if (testScheduleIds.length > 0) {
-      await dbClient.db
-        .delete(barberSchedules)
-        .where(inArray(barberSchedules.id, testScheduleIds));
-    }
-    if (testDaysOfWeek.length > 0) {
-      await dbClient.db
-        .delete(businessHours)
-        .where(inArray(businessHours.dayOfWeek, testDaysOfWeek));
-    }
-    if (testBarberIds.length > 0) {
-      await dbClient.db
-        .delete(barberProfiles)
-        .where(inArray(barberProfiles.id, testBarberIds));
-    }
-    if (testUserIds.length > 0) {
-      await dbClient.db.delete(users).where(inArray(users.id, testUserIds));
-    }
-    await dbClient.close();
   });
 
   it("upserts and retrieves business hours", async () => {

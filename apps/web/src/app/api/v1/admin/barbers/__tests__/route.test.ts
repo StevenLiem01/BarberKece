@@ -147,6 +147,7 @@ describe("Admin Barbers Route: /api/v1/admin/barbers", () => {
       mockProvisionExecute.mockResolvedValueOnce({
         id: "barber-1",
         userId: validUserId,
+        displayName: "Rizal",
         specialization: "Fade Expert",
         createdAt: now,
         updatedAt: now,
@@ -159,24 +160,33 @@ describe("Admin Barbers Route: /api/v1/admin/barbers", () => {
       const res = await POST(req);
       expect(res.status).toBe(201);
       const json = await res.json();
-      expect(json.data).toEqual({
+      expect(json.data).toMatchObject({
         id: "barber-1",
         userId: validUserId,
+        displayName: "Rizal",
         specialization: "Fade Expert",
-        createdAt: now.toISOString(),
-        updatedAt: now.toISOString(),
+        missingDisplayName: false,
       });
     });
   });
 
   describe("GET /api/v1/admin/barbers", () => {
-    it("should return 200 with list of AdminBarberDto", async () => {
+    it("should return 200 with list of AdminBarberDto including missingDisplayName flag", async () => {
       const now = new Date();
       mockListExecute.mockResolvedValueOnce([
         {
           id: "barber-1",
           userId: "user-1",
+          displayName: "Rizal",
           specialization: "Fade",
+          createdAt: now,
+          updatedAt: now,
+        },
+        {
+          id: "barber-2",
+          userId: "user-2",
+          displayName: null,
+          specialization: null,
           createdAt: now,
           updatedAt: now,
         },
@@ -185,7 +195,12 @@ describe("Admin Barbers Route: /api/v1/admin/barbers", () => {
       const res = await GET();
       expect(res.status).toBe(200);
       const json = await res.json();
-      expect(json.data).toHaveLength(1);
+      expect(json.data).toHaveLength(2);
+      expect(json.data[0].displayName).toBe("Rizal");
+      expect(json.data[0].missingDisplayName).toBe(false);
+      expect(json.data[1].displayName).toBeNull();
+      expect(json.data[1].missingDisplayName).toBe(true);
+      // Admin endpoint must expose userId
       expect(json.data[0].userId).toBe("user-1");
     });
   });

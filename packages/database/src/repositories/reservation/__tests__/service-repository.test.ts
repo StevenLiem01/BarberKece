@@ -1,51 +1,35 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { eq } from "drizzle-orm";
 import { uuidv7 } from "uuidv7";
-import { createDatabase, DatabaseClient } from "../../../client.js";
+import { DatabaseClient } from "../../../client.js";
 import { PostgresServiceRepository } from "../service-repository.js";
 import { services } from "../../../schema/reservation/services.js";
-
-import { existsSync } from "node:fs";
-import { resolve } from "node:path";
-import process from "node:process";
-
-const candidatePaths = [
-  resolve(process.cwd(), ".env"),
-  resolve(process.cwd(), "../../.env"),
-];
-
-for (const envPath of candidatePaths) {
-  if (existsSync(envPath)) {
-    try {
-      process.loadEnvFile(envPath);
-      if (process.env["DATABASE_URL"]) {
-        break;
-      }
-    } catch {
-      // Ignore
-    }
-  }
-}
-
-const TEST_DB_URL =
-  process.env["DATABASE_URL"] ||
-  "postgres://barberkece_dev:devpassword@localhost:5432/barberkece_dev";
+import {
+  createSafeTestDatabaseContext,
+  type SafeTestDatabaseContext,
+} from "../../../testing/index.js";
 
 describe("PostgresServiceRepository", () => {
+  let safeDb: SafeTestDatabaseContext | undefined;
   let dbClient: DatabaseClient;
   let repository: PostgresServiceRepository;
   const testIds: string[] = [];
 
-  beforeAll(() => {
-    dbClient = createDatabase(TEST_DB_URL);
+  beforeAll(async () => {
+    safeDb = await createSafeTestDatabaseContext();
+    dbClient = safeDb.dbClient;
     repository = new PostgresServiceRepository(dbClient.db);
   });
 
   afterAll(async () => {
-    for (const id of testIds) {
-      await dbClient.db.delete(services).where(eq(services.id, id));
+    if (safeDb?.isVerified) {
+      await safeDb.safeCleanup(async () => {
+        for (const id of testIds) {
+          await dbClient.db.delete(services).where(eq(services.id, id));
+        }
+      });
+      await safeDb.close();
     }
-    await dbClient.close();
   });
 
   it("should create a service", async () => {

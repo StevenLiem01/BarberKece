@@ -189,7 +189,7 @@ export async function GET() {
 
   try {
     const { listBarbersUseCase } = getUseCases();
-    const barbers = await listBarbersUseCase.execute();
+    const barbers = await listBarbersUseCase.execute({ includeUnnamed: true });
 
     return NextResponse.json({
       data: barbers.map(toAdminBarberDto),

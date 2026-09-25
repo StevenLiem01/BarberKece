@@ -11,3 +11,5 @@ export * from "./barber/barber-profile-repository.js";
 export * from "./reservation/postgres-idempotency-repository.js";
 export * from "./reservation/booking-transaction-runner.js";
 export * from "./recommendation.js";
+export * from "./staff-invitation-repository.js";
+export * from "./staff-invitation-transaction-runner.js";

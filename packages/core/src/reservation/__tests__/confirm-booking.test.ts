@@ -27,6 +27,7 @@ import type {
 import type { Clock } from "../ports/clock.js";
 import type { BookingReferenceGenerator } from "../domain/booking-reference.js";
 import {
+  BarberNotAvailableForBookingError,
   BarberNotEligibleError,
   BarberNotWorkingError,
   BookingHorizonExceededError,
@@ -156,7 +157,14 @@ describe("ConfirmBookingUseCase", () => {
     mockBarberProfileRepo = {
       provisionProfile: vi.fn(),
       updateSpecialization: vi.fn(),
-      findById: vi.fn(),
+      findById: vi.fn(async (id: string) => ({
+        id,
+        userId: `user-${id}`,
+        displayName: "Ahmad Barber",
+        specialization: "Fade",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })),
       findByUserId: vi.fn(),
       findAll: vi.fn(),
       lockProfiles: vi.fn(async (ids) => ids),
@@ -427,6 +435,71 @@ describe("ConfirmBookingUseCase", () => {
         barberProfileId: "barber-missing",
       }),
     ).rejects.toThrow(BarberProfileNotFoundError);
+  });
+
+  it("rejects Specific Barber booking if barber has no real displayName", async () => {
+    const useCase = createUseCase();
+    (
+      mockBarberProfileRepo.findById as ReturnType<typeof vi.fn>
+    ).mockResolvedValueOnce({
+      id: "barber-1",
+      userId: "user-1",
+      displayName: null,
+      specialization: "Fade",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    await expect(
+      useCase.execute({
+        actorId: "cust-1",
+        customerId: "cust-1",
+        serviceId: "svc-haircut",
+        startsAt: new Date("2026-09-09T03:00:00.000Z"),
+        barberProfileId: "barber-1",
+      }),
+    ).rejects.toThrow(BarberNotAvailableForBookingError);
+  });
+
+  it("skips unnamed barbers in ANY_AVAILABLE mode", async () => {
+    const useCase = createUseCase();
+    // Two eligible barbers: barber-1 is unnamed, barber-2 is named
+    (
+      mockEligibilityRepo.findEligibleBarberProfileIds as ReturnType<typeof vi.fn>
+    ).mockResolvedValueOnce(["barber-1", "barber-2"]);
+
+    (
+      mockBarberProfileRepo.findById as ReturnType<typeof vi.fn>
+    ).mockImplementation(async (id: string) => {
+      if (id === "barber-1") {
+        return {
+          id: "barber-1",
+          userId: "user-1",
+          displayName: null,
+          specialization: "Fade",
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+      }
+      return {
+        id: "barber-2",
+        userId: "user-2",
+        displayName: "Rizal Barber",
+        specialization: "Fade",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+    });
+
+    const result = await useCase.execute({
+      actorId: "cust-1",
+      customerId: "cust-1",
+      serviceId: "svc-haircut",
+      startsAt: new Date("2026-09-09T03:00:00.000Z"),
+    });
+
+    // Must be assigned to the named barber (barber-2), not the unnamed one (barber-1)
+    expect(result.appointment.barberProfileId).toBe("barber-2");
   });
 
   it("rejects Specific Barber booking if barber is not eligible for service", async () => {

@@ -13,6 +13,7 @@ import { User } from "../../identity/models/user.js";
 const makeBarberUser = (overrides: Partial<User> = {}): User => ({
   id: "user-1",
   email: "barber@example.com",
+  displayName: "Rizal Barber",
   role: "BARBER",
   status: "ACTIVE",
   emailVerifiedAt: null,
@@ -25,6 +26,7 @@ const makeBarberUser = (overrides: Partial<User> = {}): User => ({
 const makeProfile = (): BarberProfile => ({
   id: "profile-1",
   userId: "user-1",
+  displayName: "Rizal Barber",
   specialization: null,
   createdAt: new Date(),
   updatedAt: new Date(),
@@ -46,6 +48,7 @@ describe("ProvisionBarberProfileUseCase", () => {
     findById: vi.fn(),
     countByRole: vi.fn(),
     updatePassword: vi.fn(),
+    updateDisplayName: vi.fn(),
   };
 
   let useCase: ProvisionBarberProfileUseCase;

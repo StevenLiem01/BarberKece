@@ -28,6 +28,7 @@ const mockService: PublicServiceDto = {
 
 const mockBarber: PublicBarberDto = {
   id: "22222222-2222-4222-8222-222222222222",
+  displayName: "Budi",
   specialization: "Fade & Pompadour Specialist",
 };
 

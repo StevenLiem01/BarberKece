@@ -3,6 +3,8 @@ import { User, UserWithPasswordHash } from "../models/user.js";
 export interface CreateUserParams {
   id: string;
   email: string;
+  displayName?: string | null;
+  emailVerifiedAt?: Date | null;
   passwordHash: string;
   role: User["role"];
   status: User["status"];
@@ -16,4 +18,5 @@ export interface UserRepository {
   findById(id: string): Promise<User | null>;
   countByRole(role: User["role"]): Promise<number>;
   updatePassword(userId: string, newPasswordHash: string): Promise<void>;
+  updateDisplayName(userId: string, displayName: string): Promise<User>;
 }

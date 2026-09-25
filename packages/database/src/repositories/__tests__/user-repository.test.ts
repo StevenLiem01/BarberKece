@@ -1,52 +1,36 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { eq } from "drizzle-orm";
 import { uuidv7 } from "uuidv7";
-import { createDatabase, DatabaseClient } from "../../client.js";
+import { DatabaseClient } from "../../client.js";
 import { PostgresUserRepository } from "../user-repository.js";
 import { users } from "../../schema/identity/users.js";
 import { IdentityError, UserRole } from "@barberkece/core/identity";
-
-import { existsSync } from "node:fs";
-import { resolve } from "node:path";
-import process from "node:process";
-
-const candidatePaths = [
-  resolve(process.cwd(), ".env"),
-  resolve(process.cwd(), "../../.env"),
-];
-
-for (const envPath of candidatePaths) {
-  if (existsSync(envPath)) {
-    try {
-      process.loadEnvFile(envPath);
-      if (process.env["DATABASE_URL"]) {
-        break;
-      }
-    } catch {
-      // Ignore
-    }
-  }
-}
-
-const TEST_DB_URL =
-  process.env["DATABASE_URL"] ||
-  "postgres://barberkece_dev:devpassword@localhost:5432/barberkece_dev";
+import {
+  createSafeTestDatabaseContext,
+  type SafeTestDatabaseContext,
+} from "../../testing/index.js";
 
 describe("PostgresUserRepository", () => {
+  let safeDb: SafeTestDatabaseContext | undefined;
   let dbClient: DatabaseClient;
   let repository: PostgresUserRepository;
   let testUserId: string;
 
-  beforeAll(() => {
-    dbClient = createDatabase(TEST_DB_URL);
+  beforeAll(async () => {
+    safeDb = await createSafeTestDatabaseContext();
+    dbClient = safeDb.dbClient;
     repository = new PostgresUserRepository(dbClient.db);
     testUserId = uuidv7();
   });
 
   afterAll(async () => {
-    // Cleanup created users
-    await dbClient.db.delete(users).where(eq(users.id, testUserId));
-    await dbClient.close();
+    if (safeDb?.isVerified) {
+      await safeDb.safeCleanup(async () => {
+        // Cleanup created users
+        await dbClient.db.delete(users).where(eq(users.id, testUserId));
+      });
+      await safeDb.close();
+    }
   });
 
   it("should create a user and return it without returning password details incorrectly", async () => {
@@ -67,9 +51,35 @@ describe("PostgresUserRepository", () => {
     expect(user.email).toBe(email);
     expect(user.role).toBe("CUSTOMER");
     expect(user.status).toBe("ACTIVE");
+    expect(user.emailVerifiedAt).toBeNull();
     expect(
       (user as unknown as Record<string, unknown>).passwordHash,
     ).toBeUndefined(); // Should not be in the returned type
+  });
+
+  it("should persist emailVerifiedAt when provided on user creation", async () => {
+    const verifiedUserId = uuidv7();
+    const email = `verified-user-${Date.now()}@example.com`;
+    const now = new Date();
+    const verifiedAt = new Date();
+
+    const user = await repository.createUser({
+      id: verifiedUserId,
+      email,
+      displayName: "Verified Barber",
+      passwordHash: "dummy-hash-verified",
+      role: "BARBER",
+      status: "ACTIVE",
+      emailVerifiedAt: verifiedAt,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    expect(user.id).toBe(verifiedUserId);
+    expect(user.displayName).toBe("Verified Barber");
+    expect(user.emailVerifiedAt).toEqual(verifiedAt);
+
+    await dbClient.db.delete(users).where(eq(users.id, verifiedUserId));
   });
 
   it("should throw safe IdentityError on duplicate email", async () => {
