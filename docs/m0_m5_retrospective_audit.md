@@ -1,8 +1,8 @@
 # BarberKece - M0-M5 Retrospective Audit Report
 
-**Date:** 2026-09-24 (Updated 2026-09-26 for F-05A Closure)
+**Date:** 2026-09-24 (Updated 2026-09-26 for F-05A & F-01 Closures)
 **Auditor:** Claude Sonnet 4.6 / Antigravity Autonomous Coding Agent
-**Scope:** M0, M1, M2, M3, M4, M5, and F-05A Remediation
+**Scope:** M0, M1, M2, M3, M4, M5, F-05A Remediation & F-01 Re-Audit Verification
 **M6-04 Uncommitted Work:** Preserved and excluded from all modifications.
 
 ---
@@ -12,6 +12,8 @@
 The M0-M5 implementation is **substantially complete and technically sound**. The codebase demonstrates disciplined architecture adherence: clean domain/application/infrastructure separation, correct GiST exclusion-constraint concurrency protection, deterministic recommendation scoring matching locked weights, proper Argon2id authentication with timing-attack defense, and server-managed HttpOnly session cookies.
 
 On 2026-09-26, retrospective finding **F-05** was formally split into **F-05A** (Identity Display Names & Staff Invitations) and **F-05B** (Inactive Barber Lifecycle & Profile Enrichment). **F-05A has been verified and closed** with full unit, integration, database-safety, and Playwright E2E coverage passing in GitHub Actions CI (Run `36166858670`, Commit `a423d92`).
+
+Additionally on 2026-09-26, finding **F-01** (`users.last_login_at`) was re-audited and formally **closed as NOT A DEFECT / OPTIONAL TELEMETRY**. PRD §11.3–11.4 and AGENTS.md §13 do not mandate `last_login_at`; session security, expiration, and revocation are strictly owned by `sessions`, and avoiding mutation of `users` during authentication preserves database concurrency and prevents unnecessary row locks.
 
 **Safe to continue M6** — with finding F-02 (recommendation naming inconsistency) and F-05B (inactive barber handling and profile enrichment) tracked as scheduled items for M12.
 
@@ -93,9 +95,9 @@ tooling/          - Scripts (admin bootstrap, db-check, test db migrations)
 | M1-15 | Staff invitations schema present with `displayName`, token hash, 48h expiration | PASS |
 | M1-16 | Auth-gated routes redirect unauthenticated to /sign-in | PASS |
 | M1-17 | Timing attack defense on failed login (DUMMY_HASH always verified) | PASS |
-| M1-18 | lastLoginAt NOT updated on successful login (schema column exists, authenticate-user.ts omits update) | F-01 LOW |
+| M1-18 | `users.last_login_at` schema column exists but is not updated on login | CLOSED (NOT A DEFECT / OPTIONAL TELEMETRY) |
 
-**VERDICT: VERIFIED COMPLETE** (F-01 is LOW, non-security)
+**VERDICT: VERIFIED COMPLETE** (F-01 closed as non-defect/optional telemetry; non-security)
 
 ---
 
@@ -236,7 +238,7 @@ E-6: Transaction boundaries: ConfirmBooking, RescheduleAppointment, and StaffInv
 
 | ID | Milestone | Severity | Status | Finding | Historical Context & Corrective Action |
 |----|-----------|----------|:------:|---------|----------------------------------------|
-| F-01 | M1 | LOW | OPEN | `lastLoginAt` schema column exists but is never updated on successful login | Add `lastLoginAt` update in `AuthenticateUserUseCase.execute()` after session creation. Deferred. |
+| **F-01** | **M1** | **LOW** | **CLOSED** | **`lastLoginAt` schema column exists but is not updated on successful login** | **Original finding from 2026-09-24 audit. Formally closed on 2026-09-26 as NOT A DEFECT / OPTIONAL TELEMETRY. Verified against PRD §11.3–11.4, TECHNICAL_DESIGN §21–§25, and AGENTS.md §13: `last_login_at` is an optional observability attribute, not a mandatory business or security requirement. Authentication security and session lifecycles are fully enforced via `sessions`. Mutating `users` during login was intentionally avoided to prevent unnecessary row writes/locks. Retained as a nullable schema attribute for potential future observability. Value must NOT be interpreted as accurate login recency while update behavior is absent. Any future operational requirement must introduce an explicit specification, implementation, and tests before relying on it.** |
 | F-02 | M5 | MEDIUM | OPEN | `hairDensity` (Hair Profile, RecommendationInput, WEIGHTS) vs `hairThickness` (HairstyleCompatibility, DB attribute_type) naming inconsistency | Functionally bridged at `scoring.ts:161`. Scheduled for standardization before M12. |
 | F-03 | M0-M5 | LOW | OPEN | No per-milestone formal closure/acceptance-criteria documents in repository | Add per-milestone closure summaries to docs/. Outstanding until all M0–M5 closure summaries are complete. |
 | F-04 | M3 | LOW | OPEN | AvailabilityCalculator does not apply special-date business hour overrides | Intentionally deferred to M12 Operational Admin. |
@@ -252,7 +254,7 @@ E-6: Transaction boundaries: ConfirmBooking, RescheduleAppointment, and StaffInv
 | Milestone | Verdict | Notes |
 |-----------|---------|-------|
 | M0 -- Foundation | VERIFIED COMPLETE | All DoD criteria met |
-| M1 -- Authentication | VERIFIED COMPLETE | F-01 is LOW, non-blocking |
+| M1 -- Authentication | VERIFIED COMPLETE | F-01 closed (non-defect / optional telemetry) |
 | M2 -- Service & Barber | VERIFIED COMPLETE | F-05A resolved; F-05B scheduled for M12 |
 | M3 -- Reservation | VERIFIED COMPLETE | Unnamed barber exclusion enforced; concurrency tests pass |
 | M4 -- Barber Operations | VERIFIED COMPLETE | State machine correct; barber isolation enforced |
@@ -270,6 +272,12 @@ E-6: Transaction boundaries: ConfirmBooking, RescheduleAppointment, and StaffInv
   4. Update seed data, scoring.ts reference, tests, golden vectors.
 
 **Priority 2 -- Completed Remediation:**
+* **F-01: User Last Login Timestamp Audit (CLOSED 2026-09-26)**
+  - Closed as NOT A DEFECT / OPTIONAL TELEMETRY based on canonical re-audit against PRD §11.3–11.4, TECHNICAL_DESIGN §21–§25, and AGENTS.md §13.
+  - Confirmed authentication security, session expiration (7 days), and revocation are strictly owned by PostgreSQL `sessions` records.
+  - Confirmed zero active application features, UI, or API consumers depend on `lastLoginAt`.
+  - Preserved nullable schema column `users.last_login_at` without adding write locks to `users` during login.
+  - Documented caveat: `lastLoginAt` must NOT be interpreted as an accurate login recency timestamp while update behavior is absent.
 * **F-05A: Display Names, Staff Invitations & Booking Exclusion (CLOSED 2026-09-26)**
   - Applied migrations `0008_display_name.sql` and `0009_staff_invitation_display_name.sql`.
   - Required trimmed display names on customer registration.
@@ -281,7 +289,6 @@ E-6: Transaction boundaries: ConfirmBooking, RescheduleAppointment, and StaffInv
   - Passed 1,214 unit/integration tests and 19 Playwright tests in CI.
 
 **Priority 3 -- Outstanding Backlog:**
-* F-01: Update `lastLoginAt` on login.
 * F-03: Add formal per-milestone closure summaries to docs/ for all M0–M5 milestones (OPEN).
 * F-04: Special-date business hour overrides (M12).
 * **F-05B: Inactive barber lifecycle toggle, profile photo upload, and barber bio (M12).**
@@ -364,3 +371,29 @@ Feature F-05A implements universal display names at the identity root (`users.di
 3. **F-05B Scope Separation (Outstanding)**:
    - F-05A strictly covers display names, staff invitations, and unnamed barber exclusion.
    - Inactive barber lifecycle toggles (`status === 'INACTIVE'`), barber profile photo uploads, and barber portfolio/bio remain part of **F-05B** and are scheduled for Milestone M12 (Operational Admin).
+
+---
+
+## L. F-01 RESOLUTION & AUDIT CLOSURE ADDENDUM (2026-09-26)
+
+### 1. Executive Summary of Resolution
+Retrospective finding **F-01** (`users.last_login_at` / `User.lastLoginAt`) has been formally re-audited and **CLOSED as NOT A DEFECT / OPTIONAL TELEMETRY**.
+
+The investigation confirmed that the absence of a `last_login_at` update during authentication is not an implementation omission of a required feature. Rather, authentication in BarberKece is designed around server-managed session records in PostgreSQL (`sessions`), and neither the PRD, Technical Design, nor AGENTS.md establishes `last_login_at` as a mandatory business or security invariant. Mutating the `users` table upon every authentication was intentionally avoided to prevent unnecessary row contention and write amplification.
+
+### 2. Verified Invariants and Evidence
+1. **PRD Alignment**: PRD §11.3 ("Minimum Account Data") and §11.4 ("Account Security") define account attributes (`displayName`, `email`, `passwordHash`) and security requirements (hashing, reset, revocation, brute-force defense). `last_login_at` is nowhere required.
+2. **Technical Design Alignment**: TECHNICAL_DESIGN §21 ("Authentication Strategy") and §22 ("Authentication Cookie Policy") define session tokens, 7-day expiration, and cookie management. While §23 ("User Model Direction") includes `last_login_at` in an illustrative schema diagram, no operational logic, triggers, or invariants require updating it.
+3. **AGENTS.md Execution Rules**: AGENTS.md §13 ("Authentication and Authorization") establishes that sessions are server-managed, passwords use Argon2id, and authorization evaluates role and state. It contains no requirement for updating user login timestamps.
+4. **Subsystem Independence**:
+   - `AuthenticateUserUseCase` creates a session row in `sessions` with `tokenHash`, `createdAt`, and `expiresAt`.
+   - `ResolveAuthenticatedUserUseCase` validates the session token hash against `sessions` and checks `user.status === 'ACTIVE'`.
+   - Password reset and logout revoke sessions via `SessionRepository`.
+   - None of these security boundaries or lifecycles read or depend on `lastLoginAt`.
+5. **Zero Application Consumers**: No customer, barber, or admin UI, workflow, or API response depends on `lastLoginAt`.
+6. **Performance & Concurrency Protection**: Maintaining `users` as a read-only table during authentication avoids unnecessary row locks (`FOR UPDATE` contention) and write-amplification during concurrent login events.
+
+### 3. Operational Invariants and Caveats
+1. **Schema Retention**: The column `users.last_login_at` is intentionally retained as a nullable timestamp in the database schema and domain model for potential future observability.
+2. **Telemetry Accuracy Warning**: Because `AuthenticateUserUseCase` does not mutate `users.last_login_at`, the field remains `NULL` (or reflects whatever was initially written). Its value **must NOT be interpreted** by developers, administrators, or future features as an accurate indicator of user login activity.
+3. **Future Extension Protocol**: Should future administrative or analytics features in Milestone M12 (Operational Admin) require last-login tracking, that capability must be formally specified (including concurrency and performance considerations), implemented via a dedicated repository port method, and verified with unit and integration tests prior to consumption.
