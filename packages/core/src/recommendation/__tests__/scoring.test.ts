@@ -20,7 +20,7 @@ function createKnowledge(
     compatibility: {
       faceShape: { Oval: 1.0, Round: 0.5 },
       hairType: { Straight: 1.0 },
-      hairThickness: { Medium: 1.0 },
+      hairDensity: { Medium: 1.0 },
     },
     isActive: true,
     createdAt: new Date(),
@@ -60,7 +60,7 @@ describe("Recommendation Engine - Scoring", () => {
         compatibility: {
           faceShape: { Oval: 1.0 },
           hairType: { Straight: 1.0 },
-          hairThickness: { Medium: 1.0 },
+          hairDensity: { Medium: 1.0 },
         },
       }),
     ];
@@ -295,7 +295,7 @@ describe("Recommendation Engine - Scoring", () => {
       name: "Zebra",
       compatibility: {
         faceShape: { Oval: 1.0 },
-        hairThickness: { Medium: 0.75 },
+        hairDensity: { Medium: 0.75 },
       },
     });
     const kbAlpha = createKnowledge({
@@ -303,7 +303,7 @@ describe("Recommendation Engine - Scoring", () => {
       name: "Alpha",
       compatibility: {
         faceShape: { Oval: 1.0 },
-        hairThickness: { Medium: 0.5 },
+        hairDensity: { Medium: 0.5 },
       },
     });
 

@@ -71,6 +71,13 @@
       "when": 1789410000000,
       "tag": "0009_staff_invitation_display_name",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1790000000000,
+      "tag": "0010_standardize_hair_density",
+      "breakpoints": true
     }
   ]
 }

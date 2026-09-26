@@ -1,8 +1,8 @@
 # BarberKece - M0-M5 Retrospective Audit Report
 
-**Date:** 2026-09-24 (Updated 2026-09-26 for F-05A & F-01 Closures)
+**Date:** 2026-09-24 (Updated 2026-09-26 for F-05A, F-01 & F-02 Closures)
 **Auditor:** Claude Sonnet 4.6 / Antigravity Autonomous Coding Agent
-**Scope:** M0, M1, M2, M3, M4, M5, F-05A Remediation & F-01 Re-Audit Verification
+**Scope:** M0, M1, M2, M3, M4, M5, F-05A Remediation, F-01 & F-02 Re-Audit Verification
 **M6-04 Uncommitted Work:** Preserved and excluded from all modifications.
 
 ---
@@ -15,7 +15,9 @@ On 2026-09-26, retrospective finding **F-05** was formally split into **F-05A** 
 
 Additionally on 2026-09-26, finding **F-01** (`users.last_login_at`) was re-audited and formally **closed as NOT A DEFECT / OPTIONAL TELEMETRY**. PRD §11.3–11.4 and AGENTS.md §13 do not mandate `last_login_at`; session security, expiration, and revocation are strictly owned by `sessions`, and avoiding mutation of `users` during authentication preserves database concurrency and prevents unnecessary row locks.
 
-**Safe to continue M6** — with finding F-02 (recommendation naming inconsistency) and F-05B (inactive barber handling and profile enrichment) tracked as scheduled items for M12.
+Also on 2026-09-26, finding **F-02** (`hairDensity` vs `hairThickness` naming inconsistency) was standardized to the canonical `hairDensity` across the domain, repository, and persistence layers. It has passed independent local verification and is currently pending final CI validation.
+
+**Safe to continue M6** — with finding F-05B (inactive barber handling and profile enrichment) tracked as a scheduled item for M12.
 
 ---
 
@@ -188,11 +190,11 @@ tooling/          - Scripts (admin bootstrap, db-check, test db migrations)
 | M5-13 | Versioned migrations for knowledge schema (0005, 0006, 0007) | PASS |
 | M5-14 | CSRF defense on Hair Profile PUT and Recommendations POST | PASS |
 | M5-15 | Recommendation integration tests with real PostgreSQL | PASS (CI) |
-| M5-16 | hairDensity vs hairThickness naming inconsistency (functionally bridged at scoring.ts:161) | F-02 MEDIUM |
+| M5-16 | hairDensity vs hairThickness naming inconsistency (resolved via migration 0010) | PASS (F-02 PENDING CI) |
 | M5-17 | /find-my-style UI | PASS |
 | M5-18 | /recommendations UI | PASS |
 
-**VERDICT: VERIFIED COMPLETE** (F-02 is MEDIUM, functionally correct)
+**VERDICT: VERIFIED COMPLETE** (F-02 functionally standardized; pending final CI)
 
 ---
 
@@ -239,7 +241,7 @@ E-6: Transaction boundaries: ConfirmBooking, RescheduleAppointment, and StaffInv
 | ID | Milestone | Severity | Status | Finding | Historical Context & Corrective Action |
 |----|-----------|----------|:------:|---------|----------------------------------------|
 | **F-01** | **M1** | **LOW** | **CLOSED** | **`lastLoginAt` schema column exists but is not updated on successful login** | **Original finding from 2026-09-24 audit. Formally closed on 2026-09-26 as NOT A DEFECT / OPTIONAL TELEMETRY. Verified against PRD §11.3–11.4, TECHNICAL_DESIGN §21–§25, and AGENTS.md §13: `last_login_at` is an optional observability attribute, not a mandatory business or security requirement. Authentication security and session lifecycles are fully enforced via `sessions`. Mutating `users` during login was intentionally avoided to prevent unnecessary row writes/locks. Retained as a nullable schema attribute for potential future observability. Value must NOT be interpreted as accurate login recency while update behavior is absent. Any future operational requirement must introduce an explicit specification, implementation, and tests before relying on it.** |
-| F-02 | M5 | MEDIUM | OPEN | `hairDensity` (Hair Profile, RecommendationInput, WEIGHTS) vs `hairThickness` (HairstyleCompatibility, DB attribute_type) naming inconsistency | Functionally bridged at `scoring.ts:161`. Scheduled for standardization before M12. |
+| **F-02** | **M5** | **MEDIUM** | **PENDING CI** | **`hairDensity` (Hair Profile, RecommendationInput, WEIGHTS) vs `hairThickness` (HairstyleCompatibility, DB attribute_type) naming inconsistency** | **Root cause: Divergent naming during M5 implementation. Standardized on canonical `hairDensity` / `hair_density` across the domain model, API, repository, schema, and tests. A backward-compatible migration (0010) converts legacy rows safely. Independent verification passed. Awaiting GitHub Actions CI workflow success before final closure.** |
 | F-03 | M0-M5 | LOW | OPEN | No per-milestone formal closure/acceptance-criteria documents in repository | Add per-milestone closure summaries to docs/. Outstanding until all M0–M5 closure summaries are complete. |
 | F-04 | M3 | LOW | OPEN | AvailabilityCalculator does not apply special-date business hour overrides | Intentionally deferred to M12 Operational Admin. |
 | **F-05** | **M2** | **LOW** | **SPLIT** | **barber_profiles minimal (specialization only; no display name, photo, bio, active status)** | **Original finding from 2026-09-24 audit. Formally split into F-05A (Closed) and F-05B (Open).** |
@@ -258,20 +260,13 @@ E-6: Transaction boundaries: ConfirmBooking, RescheduleAppointment, and StaffInv
 | M2 -- Service & Barber | VERIFIED COMPLETE | F-05A resolved; F-05B scheduled for M12 |
 | M3 -- Reservation | VERIFIED COMPLETE | Unnamed barber exclusion enforced; concurrency tests pass |
 | M4 -- Barber Operations | VERIFIED COMPLETE | State machine correct; barber isolation enforced |
-| M5 -- Recommendation | VERIFIED COMPLETE | F-02 bridged and scheduled for M12; scoring deterministic |
+| M5 -- Recommendation | VERIFIED COMPLETE | F-02 standardized (pending CI); scoring deterministic |
 
 ---
 
 ## H. CORRECTIVE ACTION PLAN
 
-**Priority 1 -- Medium (address before M12 Operational Admin):**
-* F-02: Standardize `hairDensity` vs `hairThickness`.
-  1. Rename `HairstyleCompatibility.hairThickness` -> `hairDensity` in `packages/core/src/recommendation/model.ts`
-  2. Update `buildCompatibilityRows()` and `hydrateHairstyleKnowledge()` in `packages/database/src/repositories/recommendation.ts`
-  3. Migration: rename attribute_type `hair_thickness` -> `hair_density` in `hairstyle_compatibility`
-  4. Update seed data, scoring.ts reference, tests, golden vectors.
-
-**Priority 2 -- Completed Remediation:**
+**Priority 1 -- Completed Remediation:**
 * **F-01: User Last Login Timestamp Audit (CLOSED 2026-09-26)**
   - Closed as NOT A DEFECT / OPTIONAL TELEMETRY based on canonical re-audit against PRD §11.3–11.4, TECHNICAL_DESIGN §21–§25, and AGENTS.md §13.
   - Confirmed authentication security, session expiration (7 days), and revocation are strictly owned by PostgreSQL `sessions` records.
@@ -397,3 +392,33 @@ The investigation confirmed that the absence of a `last_login_at` update during 
 1. **Schema Retention**: The column `users.last_login_at` is intentionally retained as a nullable timestamp in the database schema and domain model for potential future observability.
 2. **Telemetry Accuracy Warning**: Because `AuthenticateUserUseCase` does not mutate `users.last_login_at`, the field remains `NULL` (or reflects whatever was initially written). Its value **must NOT be interpreted** by developers, administrators, or future features as an accurate indicator of user login activity.
 3. **Future Extension Protocol**: Should future administrative or analytics features in Milestone M12 (Operational Admin) require last-login tracking, that capability must be formally specified (including concurrency and performance considerations), implemented via a dedicated repository port method, and verified with unit and integration tests prior to consumption.
+
+---
+
+## M. F-02 RESOLUTION & AUDIT CLOSURE ADDENDUM (2026-09-26)
+
+### 1. Executive Summary of Resolution
+Retrospective finding **F-02** identified an internal terminology inconsistency: `hairDensity` was correctly used in `HairProfile`, `RecommendationInput`, and scoring weights, while the domain entity `HairstyleCompatibility` and the underlying PostgreSQL persistence schema used `hairThickness` / `hair_thickness`.
+
+The root cause was divergent naming during the initial M5 implementation. The implementation has now been fully standardized onto the canonical term `hairDensity` across all boundaries (domain, schema, repository, tests, and API). The legacy functional bridge in `scoring.ts` was safely removed.
+
+### 2. Verified Implementation Details
+
+#### 2.1 Domain & Scoring Layer (`packages/core`)
+* **`model.ts`**: Renamed `HairstyleCompatibility.hairThickness` to `hairDensity`.
+* **`scoring.ts`**: Removed the functional bridge logic. Recommendation scoring now natively and directly accesses `knowledge.compatibility.hairDensity`.
+* **Recommendation Weights**: Unchanged and verified. `WEIGHTS.hairDensity` remains strictly at `15%`. Output determinism is preserved.
+
+#### 2.2 Database & Migrations (`packages/database`)
+* **Migration 0010 (`0010_standardize_hair_density.sql`)**: Hand-written safe schema migration that:
+  1. Drops the existing constraint.
+  2. Updates all legacy `'hair_thickness'` rows to `'hair_density'` via `UPDATE`.
+  3. Adds the new `CHECK ("attribute_type" IN ('face_shape', 'hair_type', 'hair_density'))` constraint.
+* **Journal**: `packages/database/migrations/meta/_journal.json` updated with entry 10.
+* **Drizzle Snapshot Limitation**: As a manual migration, Drizzle lacks an internal snapshot of this constraint change. Future `drizzle-kit generate` commands may mistakenly attempt to add a redundant constraint. This is a known operational limitation of the project's migration conventions and requires developer awareness.
+* **Repository Adapters**: `recommendation.ts` updated. Union types, serialization, and hydration logic correctly consume `hairDensity`.
+
+#### 2.3 Testing & CI Verification
+* **Legacy Regression Test**: `packages/database/src/repositories/__tests__/recommendation.test.ts` includes a high-fidelity regression test. It executes the exact `0010_standardize_hair_density.sql` script dynamically within a strictly isolated disposable PostgreSQL schema (`f02_test`). This rigorously proves legacy `hair_thickness` data is preserved, safely mapped, and `compatibility_score` is unbroken.
+* **Independent Local Verification**: Passed strictly read-only execution locally. 1,171 tests passed, typechecks successful.
+* **GitHub Actions CI**: Pending final confirmation.

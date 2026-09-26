@@ -61,7 +61,7 @@ function isCompatibilityScore(val: number): val is CompatibilityScore {
 
 interface CompatibilityRowInsert {
   hairstyleId: string;
-  attributeType: "face_shape" | "hair_type" | "hair_thickness";
+  attributeType: "face_shape" | "hair_type" | "hair_density";
   attributeValue: string;
   compatibilityScore: string;
 }
@@ -95,12 +95,12 @@ function buildCompatibilityRows(
       }
     }
   }
-  if (compatibility.hairThickness) {
-    for (const [val, score] of Object.entries(compatibility.hairThickness)) {
+  if (compatibility.hairDensity) {
+    for (const [val, score] of Object.entries(compatibility.hairDensity)) {
       if (score !== undefined) {
         compRows.push({
           hairstyleId,
-          attributeType: "hair_thickness",
+          attributeType: "hair_density",
           attributeValue: val,
           compatibilityScore: score.toFixed(2),
         });
@@ -139,7 +139,7 @@ function hydrateHairstyleKnowledge(
   const compatibility: HairstyleKnowledge["compatibility"] = {
     faceShape: {},
     hairType: {},
-    hairThickness: {},
+    hairDensity: {},
   };
 
   for (const row of compatibilityRows) {
@@ -155,9 +155,9 @@ function hydrateHairstyleKnowledge(
     } else if (row.attributeType === "hair_type") {
       if (!compatibility.hairType) compatibility.hairType = {};
       compatibility.hairType[row.attributeValue as HairType] = score;
-    } else if (row.attributeType === "hair_thickness") {
-      if (!compatibility.hairThickness) compatibility.hairThickness = {};
-      compatibility.hairThickness[row.attributeValue as HairDensity] = score;
+    } else if (row.attributeType === "hair_density") {
+      if (!compatibility.hairDensity) compatibility.hairDensity = {};
+      compatibility.hairDensity[row.attributeValue as HairDensity] = score;
     }
   }
 

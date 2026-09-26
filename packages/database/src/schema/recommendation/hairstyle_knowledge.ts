@@ -125,7 +125,7 @@ export const hairstyleCompatibility = pgTable(
     hairstyleId: uuid("hairstyle_id")
       .notNull()
       .references(() => hairstyleKnowledge.id, { onDelete: "cascade" }),
-    attributeType: text("attribute_type").notNull(), // 'face_shape', 'hair_type', 'hair_thickness'
+    attributeType: text("attribute_type").notNull(), // 'face_shape', 'hair_type', 'hair_density'
     attributeValue: text("attribute_value").notNull(),
     compatibilityScore: numeric("compatibility_score", {
       precision: 3,
@@ -142,7 +142,7 @@ export const hairstyleCompatibility = pgTable(
     ),
     attributeTypeCheck: check(
       "hairstyle_compatibility_attribute_type_check",
-      sql`${table.attributeType} IN ('face_shape', 'hair_type', 'hair_thickness')`,
+      sql`${table.attributeType} IN ('face_shape', 'hair_type', 'hair_density')`,
     ),
     hairstyleIdIdx: index("hairstyle_compatibility_hairstyle_id_idx").on(
       table.hairstyleId,

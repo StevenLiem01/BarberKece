@@ -38,7 +38,7 @@ export type CompatibilityScore = 0.0 | 0.5 | 0.75 | 1.0;
 export interface HairstyleCompatibility {
   faceShape?: Partial<Record<FaceShape, CompatibilityScore>>;
   hairType?: Partial<Record<HairType, CompatibilityScore>>;
-  hairThickness?: Partial<Record<HairDensity, CompatibilityScore>>;
+  hairDensity?: Partial<Record<HairDensity, CompatibilityScore>>;
 }
 
 export interface HairstyleKnowledge {

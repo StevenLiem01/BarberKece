@@ -158,7 +158,7 @@ export function scoreHairstyles(
     }
 
     if (input.hairDensity) {
-      const s = knowledge.compatibility.hairThickness?.[input.hairDensity] ?? 0;
+      const s = knowledge.compatibility.hairDensity?.[input.hairDensity] ?? 0;
       rawScore += s * WEIGHTS.hairDensity;
       if (s >= 0.75) reasons.push(`Ideal for your hair density.`);
     }
